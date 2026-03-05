@@ -1,0 +1,418 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg: #ffffff;      /* fundo removido (agora branco) */
+  --orange: #F86000;  /* campos */
+  --green: #008040;   /* botão */
+  --white: #ffffff;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background: var(--bg);
+
+  /* evita scroll lateral (o 100vw costuma causar isso) */
+  overflow-x: hidden;
+}
+
+/* Layout */
+.container {
+  width: 100%;
+  height: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+
+  /* mais próximo do mock (logo mais perto do form) */
+  gap: 12px;
+  padding: 0 16px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.header img {
+  width: min(300px, 78vw);
+  height: auto;
+  display: block; /* evita espaço "fantasma" de inline-image */
+}
+
+
+form {
+  width: min(420px, 92vw);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  /* espaçamento correto entre os blocos */
+  gap: 12px;
+}
+
+.inputContainer {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+
+  margin: 0;
+  gap: 10px;
+}
+
+.inputContainer label {
+  /* no fundo branco, textos que eram brancos viram #008040 */
+  color: var(--green);
+  font-size: 12px;
+  letter-spacing: 0.28em;
+  font-weight: 600;
+  margin-left: 18px;
+}
+
+.inputContainer input {
+  width: 100%;
+  height: 60px;
+  padding: 0 26px;
+
+  border: 0;
+  border-radius: 18px;
+  background: var(--orange);
+
+  color: var(--white);
+  font-size: 18px;
+  font-weight: 500;
+  outline: none;
+
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.08);
+
+  /* hover/focus mais "vivo", mas ainda minimalista */
+  transition: filter 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+
+.inputContainer input:hover {
+  filter: brightness(1.03);
+}
+
+.inputContainer input::placeholder {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.inputContainer input:focus {
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.25),
+    0 10px 18px rgba(0, 0, 0, 0.08);
+}
+
+.button {
+  width: 75%;
+  max-width: 320px;
+  height: 58px;
+  margin-top: 2px;
+
+  border: 0;
+  border-radius: 18px;
+  background: var(--green);
+
+  color: var(--white);
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.10);
+  transition: transform 120ms ease, filter 120ms ease, box-shadow 120ms ease;
+}
+
+.button:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.button:active {
+  transform: translateY(0px);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.88;
+}
+
+.button:disabled:hover {
+  filter: none;
+  transform: none;
+}
+
+.footer {
+  margin-top: 8px;
+}
+
+/* Spinner minimalista (circulo girando) */
+.spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: rgba(255, 255, 255, 1);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.footer a {
+  /* no fundo branco, textos que eram brancos viram #008040 */
+  color: var(--green);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.95;
+
+  transition: opacity 120ms ease;
+}
+
+.footer a:hover {
+  text-decoration: underline;
+  opacity: 0.85;
+}
+
+/* ===== TOAST (notificações) ===== */
+.toastViewport {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 9999;
+
+  width: min(360px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.toast {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  padding: 12px 12px;
+
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.14);
+
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+
+  animation: toastIn 180ms ease-out;
+}
+
+.toast::before {
+  content: '';
+  width: 4px;
+  align-self: stretch;
+  border-radius: 999px;
+  background: var(--green);
+  opacity: 0.95;
+}
+
+.toast--success::before { background: var(--green); }
+.toast--error::before { background: #c62828; }
+.toast--warning::before { background: #f9a825; }
+.toast--info::before { background: #1565c0; }
+
+.toast__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.toast__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111;
+}
+
+.toast__message {
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+  line-height: 1.25;
+}
+
+.toast__close {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  background: transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  color: rgba(0, 0, 0, 0.55);
+
+  display: grid;
+  place-items: center;
+
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.toast__close:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: rgba(0, 0, 0, 0.75);
+}
+
+.toast__close:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 128, 64, 0.25);
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== OLHO NA SENHA (minimalista e branco) ===== */
+.passwordWrap {
+  position: relative;
+  width: 100%;
+}
+
+.passwordWrap input {
+  padding-right: 56px; /* espaço pro ícone */
+}
+
+.passwordToggle {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+
+  color: rgba(255, 255, 255, 0.92);
+  opacity: 0.9;
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.passwordToggle:hover {
+  opacity: 1;
+  transform: translateY(-50%) scale(1.03);
+}
+
+.passwordToggle:active {
+  transform: translateY(-50%) scale(0.98);
+}
+
+.passwordToggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+}
+
+/* Ajustes para mobile */
+@media (max-width: 480px) {
+  .container {
+    gap: 10px;
+    padding: 0 14px;
+  }
+
+  .header img {
+    width: min(240px, 72vw);
+  }
+
+  form {
+    width: min(360px, 92vw);
+    gap: 10px;
+  }
+
+  .inputContainer {
+    gap: 8px;
+  }
+
+  .inputContainer label {
+    font-size: 11px;
+    letter-spacing: 0.24em;
+    margin-left: 12px;
+  }
+
+  .inputContainer input {
+    height: 54px;
+    padding: 0 18px;
+    font-size: 16px;
+    border-radius: 16px;
+  }
+
+  .passwordToggle {
+    right: 10px;
+    width: 36px;
+    height: 36px;
+  }
+
+  .passwordWrap input {
+    padding-right: 50px;
+  }
+
+  .button {
+    width: 78%;
+    height: 48px;
+    border-radius: 16px;
+    font-size: 16px;
+  }
+
+  .footer {
+    margin-top: 6px;
+  }
+
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border-width: 2px;
+  }
+
+  .toastViewport {
+    left: 16px;
+    right: 16px;
+    width: auto;
+  }
+
+}
+
+/* telas baixas (ex.: teclado aberto) */
+@media (max-height: 700px) {
+  .header img {
+    width: min(220px, 70vw);
+  }
+
+  .inputContainer input {
+    height: 52px;
+  }
+
+  .button {
+    height: 46px;
+  }
+}
