@@ -27,3 +27,5 @@ dist-ssr
 *.db
 
 *scratch*.py
+*.pys
+*.pyc
