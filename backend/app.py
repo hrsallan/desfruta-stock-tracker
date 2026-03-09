@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
-from core.database import registrar_usuario, login_usuario, obter_relatorio_vendas, registrar_venda, obter_id_por_username, obter_usuario_por_username
+from core.database import registrar_usuario, login_usuario, obter_id_por_username, obter_usuario_por_username, verificar_produtos_disponiveis
 import os
 from dotenv import load_dotenv
 
@@ -65,42 +65,12 @@ def me():
         return jsonify({"msg": "Usuário não encontrado"}), 404
 
     return jsonify({"user": usuario}), 200
-    
-@app.route('/api/register-venda', methods=['POST'])
+
+@app.route("/api/menu/produtos-disponiveis", methods=['GET'])
 @jwt_required()
-def register_venda():
-    username = get_jwt_identity()
-    
-    user_id = obter_id_por_username(username)
-    
-    if not user_id:
-        return jsonify({"msg": "Usuário não encontrado no banco de dados"}), 404
-
-    dados = request.get_json()
-    produto_id = dados.get('produto_id')
-    quantidade_kg = dados.get('quantidade_kg')
-    tipo = dados.get('tipo')
-
-    if not all([produto_id, quantidade_kg, tipo]):
-        return jsonify({"msg": "Campos incompletos"}), 400
-
+def produtos_disponiveis():
     try:
-        registrar_venda(user_id, produto_id, quantidade_kg, tipo)
-        return jsonify({
-            "msg": "Venda registrada com sucesso!", 
-            "vendedor": username
-        }), 201
-    except Exception as e:
-        return jsonify({
-            "msg": "Erro ao registrar venda", 
-            "error": str(e)
-        }), 500
-
-@app.route("/api/relatorio-vendas", methods=['GET'])
-@jwt_required()
-def get_vendas():
-    try:
-        dados = obter_relatorio_vendas()
+        dados = verificar_produtos_disponiveis()
         return jsonify({"status": "sucesso", "dados": dados}), 200
     except Exception as e:
         return jsonify({"status": "erro", "mensagem": str(e)}), 500

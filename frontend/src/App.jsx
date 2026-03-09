@@ -53,18 +53,21 @@ const NAV = [
 
 const HOME_METRICS = [
   {
+    key: 'totalKg',
     label: 'Total de Produtos em Kg',
     value: '248.730 Kg',
     hint: 'Base pronta para receber o somatório vindo do endpoint de estoque consolidado.',
     tone: 'green',
   },
   {
+    key: 'availability',
     label: 'Variações disponíveis',
     value: '14/20',
-    hint: 'Ideal para popular com contagem de SKUs, tamanhos, cortes ou classificações.',
+    hint: 'Integração ativa com /api/menu/produtos-disponiveis para mostrar disponíveis/total.',
     tone: 'orange',
   },
   {
+    key: 'billing',
     label: 'Faturamento mensal',
     value: 'R$ 186.400',
     hint: 'Estrutura preparada para consolidar o mês corrente e comparar com o anterior.',
@@ -305,6 +308,17 @@ function getInitials(fullName = '') {
   if (parts.length === 1) return parts[0][0].toUpperCase()
 
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
+}
+
+function normalizeAvailabilityData(data) {
+  const source = data?.dados ?? data?.data ?? data ?? {}
+  const disponiveis = Number(source?.disponiveis ?? source?.disponivel ?? source?.available ?? 0)
+  const total = Number(source?.total ?? source?.total_variacoes ?? source?.variacoes_total ?? 0)
+
+  return {
+    disponiveis: Number.isFinite(disponiveis) ? disponiveis : 0,
+    total: Number.isFinite(total) ? total : 0,
+  }
 }
 
 function EyeIcon({ open }) {
@@ -623,12 +637,80 @@ function PageContent({ activeKey, userName }) {
 }
 
 function HomePage() {
+  const [availability, setAvailability] = useState({
+    loading: true,
+    error: '',
+    disponiveis: 0,
+    total: 0,
+  })
+
+  useEffect(() => {
+    let ignore = false
+
+    async function loadAvailability() {
+      try {
+        const res = await api.get('/api/menu/produtos-disponiveis')
+        const parsed = normalizeAvailabilityData(res?.data)
+
+        if (ignore) return
+        setAvailability({
+          loading: false,
+          error: '',
+          ...parsed,
+        })
+      } catch (err) {
+        if (ignore) return
+
+        setAvailability({
+          loading: false,
+          error: extractApiMessage(err?.response?.data) || 'Não foi possível carregar as variações disponíveis.',
+          disponiveis: 0,
+          total: 0,
+        })
+      }
+    }
+
+    loadAvailability()
+
+    return () => {
+      ignore = true
+    }
+  }, [])
+
+  const homeMetrics = useMemo(() => {
+    return HOME_METRICS.map((item) => {
+      if (item.key !== 'availability') return item
+
+      if (availability.loading) {
+        return {
+          ...item,
+          value: 'Carregando...',
+          hint: 'Consultando a API /api/menu/produtos-disponiveis.',
+        }
+      }
+
+      if (availability.error) {
+        return {
+          ...item,
+          value: '--',
+          hint: availability.error,
+        }
+      }
+
+      return {
+        ...item,
+        value: `${availability.disponiveis}/${availability.total}`,
+        hint: `Variações com estoque disponível em relação ao total cadastrado na API.`,
+      }
+    })
+  }, [availability])
+
   return (
     <>
       <section className="heroCard">
         <div>
           <span className="eyebrow">Painel principal</span>
-          <h2 className="heroTitle">Resumo central da operação pronto para receber dados do backend.</h2>
+          <h2 className="heroTitle">Resumo central da operação com card de disponibilidade ligado à API.</h2>
           <p className="heroText">
             Este bloco foi desenhado para ser a entrada do sistema, destacando peso total em Kg,
             quantidade de variações disponíveis, faturamento mensal e o histórico recente da operação.
@@ -638,12 +720,12 @@ function HomePage() {
         <div className="heroBadges">
           <span className="softBadge">Visão diária</span>
           <span className="softBadge">Consolidação mensal</span>
-          <span className="softBadge">Integração preparada</span>
+          <span className="softBadge">API aplicada</span>
         </div>
       </section>
 
       <div className="metricGrid">
-        {HOME_METRICS.map((item) => (
+        {homeMetrics.map((item) => (
           <MetricCard key={item.label} {...item} />
         ))}
       </div>
@@ -652,7 +734,7 @@ function HomePage() {
         title="Integração sugerida para o menu principal"
         items={API_BLUEPRINTS.home}
         notes={[
-          'Substituir os valores dos cards por resposta do backend.',
+          'O card de variações disponíveis já consome o endpoint autenticado /api/menu/produtos-disponiveis.',
           'Popular a tabela de atividade com paginação ou limite de registros.',
           'Adicionar loading e tratamento de erro na busca inicial.',
         ]}
