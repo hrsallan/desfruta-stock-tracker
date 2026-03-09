@@ -648,37 +648,15 @@ function HomePage() {
         ))}
       </div>
 
-      <div className="splitGrid twoColsTop">
-        <SectionCard
-          title="Resumo operacional"
-          subtitle="Espaço útil para consolidar indicadores auxiliares do menu principal."
-        >
-          <div className="summaryList">
-            <div className="summaryItem">
-              <span>Produtos ativos</span>
-              <strong>1.284</strong>
-            </div>
-            <div className="summaryItem">
-              <span>Centros monitorados</span>
-              <strong>06 unidades</strong>
-            </div>
-            <div className="summaryItem">
-              <span>Última atualização</span>
-              <strong>Hoje, 10:16</strong>
-            </div>
-          </div>
-        </SectionCard>
-
-        <ApiBlueprintCard
-          title="Integração sugerida para o menu principal"
-          items={API_BLUEPRINTS.home}
-          notes={[
-            'Substituir os valores dos cards por resposta do backend.',
-            'Popular a tabela de atividade com paginação ou limite de registros.',
-            'Adicionar loading e tratamento de erro na busca inicial.',
-          ]}
-        />
-      </div>
+      <ApiBlueprintCard
+        title="Integração sugerida para o menu principal"
+        items={API_BLUEPRINTS.home}
+        notes={[
+          'Substituir os valores dos cards por resposta do backend.',
+          'Popular a tabela de atividade com paginação ou limite de registros.',
+          'Adicionar loading e tratamento de erro na busca inicial.',
+        ]}
+      />
 
       <RecentActivityTable />
     </>
