@@ -138,8 +138,8 @@ function LoginPage({ onAuthed }) {
 
     setLoading(true)
     try {
-      // Ajuste a rota se seu backend usar outra (ex.: /auth/login)
-      const res = await api.post('/login', {
+      // Ajuste a rota se seu backend usar outra (ex.: /auth/api/login)
+      const res = await api.post('/api/login', {
         username: user,
         user,
         password,

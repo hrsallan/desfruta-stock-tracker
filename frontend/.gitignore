@@ -23,9 +23,22 @@ dist-ssr
 *.sln
 *.sw?
 
-#Ignore SQLlite's bank
+#Ignore SQLlite's bank and Cache's
 *.db
-
 *scratch*.py
 *.pys
 *.pyc
+
+# Ambiente de Variáveis (Essencial!)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Pastas de cache e ambientes virtuais
+__pycache__/
+.venv/
+venv/
+env/
+.pytest_cache/
