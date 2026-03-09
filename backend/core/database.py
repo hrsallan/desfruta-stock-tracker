@@ -11,12 +11,20 @@ else:
     cursor = conn.cursor()
 
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS produtos (
+    CREATE TABLE IF NOT EXISTS produtos_padrao (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         sabor TEXT,
         preco_pf REAL,
-        preco_cnpj REAL,
-        quantidade_kg REAL
+        preco_cnpj REAL
+    )
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS produtos (   
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sabor TEXT,
+        quantidade_kg REAL,
+        validade DATE
     )
     """)
 
@@ -42,7 +50,7 @@ else:
         )
     """)
 
-    produtos = [
+    produtos_padrao = [
     ("Abacaxi", 28.0, 23.0, 0),
     ("Aba.Hortelã", 30.0, 25.0, 0),
     ("Açaí", 33.0, 30.0, 0),
@@ -63,8 +71,8 @@ else:
 ]
 
     cursor.executemany(
-        "INSERT INTO produtos (sabor, preco_pf, preco_cnpj, quantidade_kg) VALUES (?, ?, ?, ?)",
-        produtos
+        "INSERT INTO produtos_padrao (sabor, preco_pf, preco_cnpj, quantidade_kg) VALUES (?, ?, ?, ?)",
+        produtos_padrao
     )
 
     conn.commit()
@@ -103,6 +111,24 @@ def obter_id_por_username(username):
     conn.close()
     return resultado[0] if resultado else None
 
+
+def obter_usuario_por_username(username):
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT user_id, nome, username, role FROM users WHERE username = ?", (username,))
+    resultado = cursor.fetchone()
+    conn.close()
+    return dict(resultado) if resultado else None
+
+# Função para registrar produto
+def registrar_produto(sabor, quantidade_kg, validade):
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute('INSERT INTO produtos (sabor, quantidade_kg, validade) VALUES (?, ?, ?)', (sabor, quantidade_kg, validade))
+    conn.commit()
+    conn.close()
+
 # Registrar venda
 def registrar_venda(user_id, produto_id, quantidade_kg, tipo):
     conn = sqlite3.connect(db_path)
@@ -121,7 +147,7 @@ def obter_relatorio_vendas():
     SELECT v.venda_id, p.sabor, v.quantidade_kg, v.tipo,
            (v.quantidade_kg * CASE WHEN v.tipo = 'PF' THEN p.preco_pf ELSE p.preco_cnpj END) AS valor_total
     FROM vendas v
-    JOIN produtos p ON v.produto_id = p.id
+    JOIN produtos_padrao p ON v.produto_id = p.id
     """
     
     cursor.execute(query)

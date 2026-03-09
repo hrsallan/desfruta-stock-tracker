@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
-from core.database import registrar_usuario, login_usuario, obter_relatorio_vendas, registrar_venda, obter_id_por_username
+from core.database import registrar_usuario, login_usuario, obter_relatorio_vendas, registrar_venda, obter_id_por_username, obter_usuario_por_username
 import os
 from dotenv import load_dotenv
 
@@ -30,7 +30,12 @@ def login():
     try:
         if verify:
             access_token = create_access_token(identity=username)
-            return jsonify({"msg": "sucess", "token": access_token}), 200
+            usuario = obter_usuario_por_username(username)
+            return jsonify({
+                "msg": "sucess",
+                "token": access_token,
+                "user": usuario
+            }), 200
         return jsonify({"msg": "Credenciais inválidas"}), 401
     except Exception as e:
         return jsonify({"msg": "Erro ao processar login", "error": str(e)}), 500
@@ -48,6 +53,18 @@ def register():
         return jsonify({"msg": "Usuário registrado com sucesso!"}), 201
     except Exception as e:
         return jsonify({"msg": "Erro ao registrar usuário", "error": str(e)}), 500
+
+
+@app.route('/api/me', methods=['GET'])
+@jwt_required()
+def me():
+    username = get_jwt_identity()
+    usuario = obter_usuario_por_username(username)
+
+    if not usuario:
+        return jsonify({"msg": "Usuário não encontrado"}), 404
+
+    return jsonify({"user": usuario}), 200
     
 @app.route('/api/register-venda', methods=['POST'])
 @jwt_required()
