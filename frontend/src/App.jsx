@@ -387,7 +387,7 @@ function EyeIcon({ open }) {
 }
 
 export function App() {
-  const [token, setToken] = useState(() => localStorage.getItem('token'))
+  const [token, setToken] = useState(null)
   const [displayName, setDisplayName] = useState(() => localStorage.getItem('display_name') || 'Usuário do sistema')
 
   useEffect(() => {
@@ -469,8 +469,6 @@ function LoginPage({ onAuthed }) {
         })
         return
       }
-
-      localStorage.setItem('token', accessToken)
 
       const fallbackName = getDisplayNameFromResponse(data, user.trim()) || 'Usuário do sistema'
       const displayName = await resolveDisplayName(fallbackName)
