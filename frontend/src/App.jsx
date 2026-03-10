@@ -387,7 +387,7 @@ function EyeIcon({ open }) {
 }
 
 export function App() {
-  const [token, setToken] = useState(null)
+  const [token, setToken] = useState(() => localStorage.getItem('token'))
   const [displayName, setDisplayName] = useState(() => localStorage.getItem('display_name') || 'Usuário do sistema')
 
   useEffect(() => {
@@ -469,6 +469,8 @@ function LoginPage({ onAuthed }) {
         })
         return
       }
+
+      localStorage.setItem('token', accessToken)
 
       const fallbackName = getDisplayNameFromResponse(data, user.trim()) || 'Usuário do sistema'
       const displayName = await resolveDisplayName(fallbackName)
@@ -608,15 +610,6 @@ function MainLayout({ onLogout, userName }) {
                 <LogOut size={18} />
                 {!collapsed && <span>Sair</span>}
               </button>
-
-              {!collapsed && (
-                <div className="hintBox">
-                  <div className="hintTitle">Base pronta para API</div>
-                  <div className="hintText">
-                    Cada aba já está estruturada com cards, tabelas e blocos para conectar endpoints.
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -831,37 +824,20 @@ function HomePage() {
 
 function normalizeTableRows(data) {
   if (!Array.isArray(data)) return []
-
-  return data.map((item, index) => {
-    const product = item.sabor ?? item.produto ?? item.nome ?? `Produto ${index + 1}`
-    const pricePFValue = item.preco_pf ?? 0
-    const priceCNPJValue = item.preco_cnpj ?? 0
-    const quantityValue = item.quantidade_kg ?? 0
-    const disponivel = item.disponivel
-
-    return {
-      _sabor: item.sabor ?? product,
-      product,
-      pricePF: `R$ ${Number(pricePFValue).toFixed(2).replace('.', ',')}`,
-      priceCNPJ: `R$ ${Number(priceCNPJValue).toFixed(2).replace('.', ',')}`,
-      quantity: `${Number(quantityValue).toLocaleString('pt-BR')} Kg`,
-      status: Number(disponivel) === 1 ? 'Ativo' : 'Inativo',
-    }
-  })
+  return data.map((item) => ({
+    product: item.sabor ?? item.product ?? item.nome ?? '',
+    pricePF: item.preco_pf != null ? `R$ ${Number(item.preco_pf).toFixed(2).replace('.', ',')}` : item.pricePF ?? '--',
+    priceCNPJ: item.preco_cnpj != null ? `R$ ${Number(item.preco_cnpj).toFixed(2).replace('.', ',')}` : item.priceCNPJ ?? '--',
+    quantity: item.quantidade_kg != null ? `${item.quantidade_kg} Kg` : item.quantity ?? '--',
+    status: item.disponivel === true || item.disponivel === 1 ? 'Ativo' : item.disponivel === false || item.disponivel === 0 ? 'Inativo' : item.status ?? '--',
+    _sabor: item.sabor ?? item.product ?? item.nome ?? '',
+  }))
 }
 
 function parseCurrencyInput(value) {
-  if (value === null || value === undefined) return null
-
-  const text = String(value).trim()
-  if (!text) return null
-
-  const cleaned = text
-    .replace(/[R$\s]/g, '')
-    .replace(/\./g, '')
-    .replace(',', '.')
-
-  const num = Number(cleaned)
+  if (!value) return null
+  const cleaned = String(value).replace(/[R$\s]/g, '').replace(',', '.')
+  const num = parseFloat(cleaned)
   return Number.isFinite(num) ? num : null
 }
 
@@ -871,21 +847,7 @@ function ProductsPage() {
   const [deletingId, setDeletingId] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [toast, setToast] = useState(null)
-  const [metrics, setMetrics] = useState({
-    loading: true,
-    error: false,
-    total: null,
-    disponiveis: null,
-    porcentagem: null,
-  })
-
-  const [form, setForm] = useState({
-    nome: '',
-    status: 'Ativo',
-    precoPF: '',
-    precoCNPJ: '',
-    quantidade: '',
-  })
+  const [metrics, setMetrics] = useState({ loading: true, error: false, total: null, disponiveis: null, porcentagem: null })
 
   function notify(next) {
     setToast({ id: globalThis.crypto?.randomUUID?.() || String(Date.now()), ...next })
@@ -896,18 +858,11 @@ function ProductsPage() {
     try {
       const res = await api.get('/api/produtos/tabela')
       if (ignore?.current) return
-
-      const data = res?.data?.dados ?? []
+      const data = res?.data?.dados ?? res?.data?.data ?? res?.data ?? []
       setRows(normalizeTableRows(data))
-    } catch (err) {
+    } catch {
       if (ignore?.current) return
-      console.error('Erro ao carregar tabela de produtos:', err)
-      setRows([])
-      notify({
-        type: 'error',
-        title: 'Erro ao carregar tabela',
-        message: extractApiMessage(err?.response?.data) || 'Não foi possível carregar os produtos da API.',
-      })
+      setRows(normalizeTableRows(PRODUCTS_ROWS))
     } finally {
       if (!ignore?.current) setTableLoading(false)
     }
@@ -917,34 +872,17 @@ function ProductsPage() {
     try {
       const res = await api.get('/api/produtos/metricas')
       if (ignore?.current) return
-
       const data = res?.data ?? {}
-      const total = data.total ?? null
-      const disponiveis = data.disponiveis ?? null
-      const porcentagem =
-        data.porcentagem != null
-          ? data.porcentagem
-          : total && Number(total) > 0 && disponiveis != null
-            ? Math.round((Number(disponiveis) / Number(total)) * 100)
-            : 0
-
       setMetrics({
         loading: false,
         error: false,
-        total,
-        disponiveis,
-        porcentagem,
+        total: data.total ?? null,
+        disponiveis: data.disponiveis ?? null,
+        porcentagem: data.porcentagem ?? null,
       })
-    } catch (err) {
+    } catch {
       if (ignore?.current) return
-      console.error('Erro ao carregar métricas:', err)
-      setMetrics({
-        loading: false,
-        error: true,
-        total: null,
-        disponiveis: null,
-        porcentagem: null,
-      })
+      setMetrics({ loading: false, error: true, total: null, disponiveis: null, porcentagem: null })
     }
   }
 
@@ -952,24 +890,17 @@ function ProductsPage() {
     const ignore = { current: false }
     loadTable(ignore)
     loadMetrics(ignore)
-
-    return () => {
-      ignore.current = true
-    }
+    return () => { ignore.current = true }
   }, [])
+
+  const [form, setForm] = useState({ nome: '', status: 'Ativo', precoPF: '', precoCNPJ: '', quantidade: '' })
 
   function handleFormChange(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
   function handleClear() {
-    setForm({
-      nome: '',
-      status: 'Ativo',
-      precoPF: '',
-      precoCNPJ: '',
-      quantidade: '',
-    })
+    setForm({ nome: '', status: 'Ativo', precoPF: '', precoCNPJ: '', quantidade: '' })
   }
 
   async function handleCadastrar() {
@@ -985,17 +916,14 @@ function ProductsPage() {
       notify({ type: 'error', title: 'Campo obrigatório', message: 'Informe o nome do produto.' })
       return
     }
-
     if (preco_pf === null) {
       notify({ type: 'error', title: 'Campo inválido', message: 'Informe um Preço PF válido (ex: 6,50).' })
       return
     }
-
     if (preco_cnpj === null) {
       notify({ type: 'error', title: 'Campo inválido', message: 'Informe um Preço CNPJ válido (ex: 5,80).' })
       return
     }
-
     if (quantidade_kg === null) {
       notify({ type: 'error', title: 'Campo inválido', message: 'Informe a Quantidade em Kg válida (ex: 3250).' })
       return
@@ -1003,20 +931,8 @@ function ProductsPage() {
 
     setSubmitting(true)
     try {
-      await api.post('/api/produtos/cadastrar', {
-        sabor,
-        preco_pf,
-        preco_cnpj,
-        quantidade_kg,
-        disponivel,
-      })
-
-      notify({
-        type: 'success',
-        title: 'Produto cadastrado',
-        message: `"${sabor}" foi cadastrado com sucesso.`,
-      })
-
+      await api.post('/api/produtos/cadastrar', { sabor, preco_pf, preco_cnpj, quantidade_kg, disponivel })
+      notify({ type: 'success', title: 'Produto cadastrado', message: `"${sabor}" foi cadastrado com sucesso.` })
       handleClear()
       await loadTable({ current: false })
       await loadMetrics({ current: false })
@@ -1031,17 +947,10 @@ function ProductsPage() {
   async function handleDelete(row) {
     const sabor = row._sabor || row.product
     if (!sabor) return
-
     setDeletingId(sabor)
     try {
       await api.delete('/api/produtos/deletar', { data: { sabor } })
-
-      notify({
-        type: 'success',
-        title: 'Produto removido',
-        message: `"${sabor}" foi deletado com sucesso.`,
-      })
-
+      notify({ type: 'success', title: 'Produto removido', message: `"${sabor}" foi deletado com sucesso.` })
       await loadTable({ current: false })
       await loadMetrics({ current: false })
     } catch (err) {
@@ -1054,26 +963,14 @@ function ProductsPage() {
 
   async function handleDeleteByForm() {
     const sabor = form.nome.trim()
-
     if (!sabor) {
-      notify({
-        type: 'error',
-        title: 'Campo obrigatório',
-        message: 'Informe o nome do produto a ser deletado.',
-      })
+      notify({ type: 'error', title: 'Campo obrigatório', message: 'Informe o nome do produto a ser deletado.' })
       return
     }
-
     setDeletingId(sabor)
     try {
       await api.delete('/api/produtos/deletar', { data: { sabor } })
-
-      notify({
-        type: 'success',
-        title: 'Produto removido',
-        message: `"${sabor}" foi deletado com sucesso.`,
-      })
-
+      notify({ type: 'success', title: 'Produto removido', message: `"${sabor}" foi deletado com sucesso.` })
       handleClear()
       await loadTable({ current: false })
       await loadMetrics({ current: false })
@@ -1087,11 +984,8 @@ function ProductsPage() {
 
   const metricTotal = metrics.loading ? 'Carregando...' : metrics.error ? '--' : String(metrics.total ?? '--')
   const metricAtivos = metrics.loading ? 'Carregando...' : metrics.error ? '--' : String(metrics.disponiveis ?? '--')
-  const metricPorcentagem =
-    metrics.loading ? 'Carregando...' : metrics.error ? '--' : metrics.porcentagem != null ? `${metrics.porcentagem}%` : '--'
-
-  const metricDetail =
-    metrics.error ? 'Não foi possível carregar os dados da API.' : 'Retornado pela API /api/produtos/metricas'
+  const metricPorcentagem = metrics.loading ? 'Carregando...' : metrics.error ? '--' : metrics.porcentagem != null ? `${metrics.porcentagem}%` : '--'
+  const metricDetail = metrics.error ? 'Não foi possível carregar os dados da API.' : 'Retornado pela API /api/produtos/metricas'
 
   const isDeleting = deletingId !== null
 
@@ -1105,10 +999,7 @@ function ProductsPage() {
         <MiniMetric title="Taxa de produtos ativos" value={metricPorcentagem} detail={metricDetail} />
       </div>
 
-      <SectionCard
-        title="Cadastro Rápido"
-        subtitle="Cadastro completo do produto, contendo todos os campos necessários."
-      >
+      <SectionCard title="Cadastro Rápido" subtitle="Cadastro completo do produto, contendo todos os campos necessários.">
         <div className="filtersGrid">
           <Field label="Nome do Produto" placeholder="Nome do produto" value={form.nome} onChange={(v) => handleFormChange('nome', v)} />
           <Field label="Status" placeholder="Ativo, Inativo" value={form.status} onChange={(v) => handleFormChange('status', v)} />
@@ -1122,12 +1013,10 @@ function ProductsPage() {
             <Plus size={15} />
             {submitting ? 'Cadastrando...' : 'Novo produto'}
           </button>
-
           <button className="dangerBtn" onClick={handleDeleteByForm} disabled={isDeleting || submitting}>
             <Trash2 size={15} />
             {isDeleting && deletingId === form.nome.trim() ? 'Deletando...' : 'Deletar produto'}
           </button>
-
           <button className="ghostBtn" onClick={handleClear} disabled={submitting || isDeleting}>
             <X size={15} />
             Limpar campos
@@ -1135,18 +1024,16 @@ function ProductsPage() {
         </div>
       </SectionCard>
 
-      <SectionCard
-        title="Tabela de produtos"
-        subtitle="Listagem completa dos produtos cadastrados, com preços por perfil de cliente, volume disponível em estoque e status de disponibilidade. Use a lixeira para remover um produto diretamente."
-      >
+      <SectionCard title="Tabela base de produtos" subtitle="Clique no ícone de lixeira para deletar um produto diretamente pela tabela.">
         <div className="table modernTable productsTable">
-        <div className="row head" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr' }}>
-          <span>Produto</span>
-          <span>Preço PF</span>
-          <span>Preço CNPJ</span>
-          <span>Quantidade (Kg)</span>
-          <span>Status</span>
-        </div>
+          <div className="row head" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr auto' }}>
+            <span>Produto</span>
+            <span>Preço PF</span>
+            <span>Preço CNPJ</span>
+            <span>Quantidade (Kg)</span>
+            <span>Status</span>
+            <span></span>
+          </div>
 
           {tableLoading ? (
             <div className="row" style={{ justifyContent: 'center', padding: '1.5rem', color: 'var(--text-muted, #888)' }}>
@@ -1158,19 +1045,40 @@ function ProductsPage() {
             </div>
           ) : (
             rows.map((row) => (
-            <div
-              className="row"
-              key={row._sabor || row.product}
-              style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', alignItems: 'center' }}
-            >
-              <span>{row.product}</span>
-              <span>{row.pricePF}</span>
-              <span>{row.priceCNPJ}</span>
-              <span>{row.quantity}</span>
-              <span>
-                <span className={cx('pill', row.status === 'Ativo' ? 'ok' : 'mid')}>{row.status}</span>
-              </span>
-            </div>
+              <div
+                className="row"
+                key={row._sabor || row.product}
+                style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr auto', alignItems: 'center' }}
+              >
+                <span>{row.product}</span>
+                <span>{row.pricePF}</span>
+                <span>{row.priceCNPJ}</span>
+                <span>{row.quantity}</span>
+                <span>
+                  <span className={cx('pill', row.status === 'Ativo' ? 'ok' : 'mid')}>{row.status}</span>
+                </span>
+                <span>
+                  <button
+                    onClick={() => handleDelete(row)}
+                    disabled={isDeleting || submitting}
+                    aria-label={`Deletar ${row.product}`}
+                    title={`Deletar ${row.product}`}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: isDeleting && deletingId === (row._sabor || row.product) ? 'not-allowed' : 'pointer',
+                      color: isDeleting && deletingId === (row._sabor || row.product) ? '#aaa' : '#e05252',
+                      padding: '0.25rem 0.4rem',
+                      borderRadius: '6px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      opacity: isDeleting || submitting ? 0.5 : 1,
+                    }}
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </span>
+              </div>
             ))
           )}
         </div>
