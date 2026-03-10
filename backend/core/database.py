@@ -101,7 +101,8 @@ def verificar_produtos_disponiveis():
         disponiveis = cursor.fetchone()[0]
         cursor.execute("SELECT COUNT(*) FROM produtos_padrao")
         total = cursor.fetchone()[0]
-        return {"disponiveis": disponiveis, "total": total}
+        porcentagem = (int(disponiveis) / int(total) * 100) if total > 0 else 0
+        return {"disponiveis": disponiveis, "total": total, "porcentagem": porcentagem}
         
 # Função que verifica a quantidade de kg disponíveis
 def verificar_kg_disponiveis():

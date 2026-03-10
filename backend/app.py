@@ -95,6 +95,27 @@ def kg_disponiveis():
     except Exception as e:
         return jsonify({"status": "erro", "mensagem": str(e)}), 500
 
+
+# -------------------------
+# Api's Gerenciar Produtos
+# -------------------------
+@app.route('/api/produtos/metricas', methods=['GET'])
+@jwt_required()
+def produtos_metricas():         
+    try:
+        dados = verificar_produtos_disponiveis()
+        return jsonify({"disponiveis": dados["disponiveis"], "total": dados["total"], "porcentagem": dados['porcentagem']}), 200
+    except Exception as e:
+        return jsonify({"status": "erro", "mensagem": str(e)}), 500
+    
+@app.route('/api/produtos/tabela', methods=['GET'])
+@jwt_required()
+def tabela_produtos_completa():
+    try:
+        dados = tabela_produtos()
+        return jsonify({"status": "sucesso", "dados": dados}), 200
+    except Exception as e:
+        return jsonify({"status": "erro", "mensagem": str(e)}), 500
 # -------------------------
 # Api's em desenvolvimento
 # -------------------------
@@ -108,13 +129,6 @@ def faturamento_mensal():
 def atividade_recente():
     pass
 
-@app.route('/api/produtos/tabela', methods=['GET'])
-def tabela_produtos():
-    try:
-        dados = tabela_produtos()
-        return jsonify({"status": "sucesso", "dados": dados}), 200
-    except Exception as e:
-        return jsonify({"status": "erro", "mensagem": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

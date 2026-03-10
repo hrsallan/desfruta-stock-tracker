@@ -8,9 +8,12 @@ import {
   LayoutDashboard,
   LogOut,
   Package,
+  Plus,
   Search,
+  Trash2,
   Users,
   Warehouse,
+  X,
 } from 'lucide-react'
 
 import api from './api/axiosInstance'
@@ -87,35 +90,31 @@ const RECENT_ACTIVITY = [
 const PRODUCTS_ROWS = [
   {
     product: 'Banana Prata',
-    category: 'Frutas',
-    unit: 'Kg',
-    price: 'R$ 6,50',
+    pricePF: 'R$ 6,50',
+    priceCNPJ: 'R$ 5,80',
+    quantity: '3.250 Kg',
     status: 'Ativo',
-    integration: 'GET /api/products',
   },
   {
     product: 'Abacaxi Pérola',
-    category: 'Frutas',
-    unit: 'Kg',
-    price: 'R$ 7,90',
+    pricePF: 'R$ 7,90',
+    priceCNPJ: 'R$ 7,00',
+    quantity: '780 Kg',
     status: 'Rascunho',
-    integration: 'POST /api/products',
   },
   {
     product: 'Tomate Italiano',
-    category: 'Legumes',
-    unit: 'Kg',
-    price: 'R$ 8,20',
+    pricePF: 'R$ 8,20',
+    priceCNPJ: 'R$ 7,40',
+    quantity: '1.120 Kg',
     status: 'Ativo',
-    integration: 'PATCH /api/products/:id',
   },
   {
     product: 'Uva Vitória',
-    category: 'Frutas Premium',
-    unit: 'Bandeja',
-    price: 'R$ 14,00',
+    pricePF: 'R$ 14,00',
+    priceCNPJ: 'R$ 12,50',
+    quantity: '240 Kg',
     status: 'Ativo',
-    integration: 'DELETE /api/products/:id',
   },
 ]
 
@@ -833,62 +832,130 @@ function HomePage() {
 }
 
 function ProductsPage() {
+  const [rows, setRows] = useState(PRODUCTS_ROWS)
+  const [deletingId, setDeletingId] = useState(null)
+  const [toast, setToast] = useState(null)
+  const [metrics, setMetrics] = useState({ loading: true, error: false, total: null, disponiveis: null, porcentagem: null })
+
+  useEffect(() => {
+    let ignore = false
+
+    async function loadMetrics() {
+      try {
+        const res = await api.get('/api/produtos/metricas')
+        if (ignore) return
+        const data = res?.data ?? {}
+        setMetrics({
+          loading: false,
+          error: false,
+          total: data.total ?? null,
+          disponiveis: data.disponiveis ?? null,
+          porcentagem: data.porcentagem ?? null,
+        })
+      } catch {
+        if (ignore) return
+        setMetrics({ loading: false, error: true, total: null, disponiveis: null, porcentagem: null })
+      }
+    }
+
+    loadMetrics()
+    return () => { ignore = true }
+  }, [])
+
+  const [form, setForm] = useState({ nome: '', status: '', precoPF: '', precoCNPJ: '', quantidade: '' })
+
+  function handleFormChange(field, value) {
+    setForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  function handleClear() {
+    setForm({ nome: '', status: '', precoPF: '', precoCNPJ: '', quantidade: '' })
+  }
+
+  function notify(next) {
+    setToast({ id: globalThis.crypto?.randomUUID?.() || String(Date.now()), ...next })
+  }
+
+  async function handleDelete(row) {
+    const key = `${row.product}-${row.integration}`
+    setDeletingId(key)
+
+    try {
+      // TODO: substituir ':id' pelo identificador real do produto quando a API estiver ativa
+      // await api.delete(`/api/products/${row.id}`)
+
+      // Simulação de delay de rede (remover quando conectar à API)
+      await new Promise((resolve) => setTimeout(resolve, 600))
+
+      setRows((prev) => prev.filter((r) => `${r.product}-${r.integration}` !== key))
+      notify({ type: 'success', title: 'Produto removido', message: `"${row.product}" foi deletado com sucesso.` })
+    } catch (err) {
+      const msg = extractApiMessage(err?.response?.data) || err?.message || 'Erro ao deletar produto.'
+      notify({ type: 'error', title: 'Erro ao deletar', message: msg })
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  const metricTotal = metrics.loading ? 'Carregando...' : metrics.error ? '--' : String(metrics.total ?? '--')
+  const metricAtivos = metrics.loading ? 'Carregando...' : metrics.error ? '--' : String(metrics.disponiveis ?? '--')
+  const metricPorcentagem = metrics.loading ? 'Carregando...' : metrics.error ? '--' : metrics.porcentagem != null ? `${metrics.porcentagem}%` : '--'
+  const metricDetail = metrics.error ? 'Não foi possível carregar os dados da API.' : 'Retornado pela API /api/produtos/metricas'
+
   return (
     <>
+      <Toast toast={toast} onClose={() => setToast(null)} />
+
       <div className="metricGrid compactMetrics">
-        <MiniMetric title="Produtos cadastrados" value="1.284" detail="Base mockada para futura listagem da API" />
-        <MiniMetric title="Categorias ativas" value="18" detail="Pode vir de /api/products/categories" />
-        <MiniMetric title="Itens em rascunho" value="07" detail="Bom para sinalizar cadastros incompletos" />
+        <MiniMetric title="Produtos cadastrados" value={metricTotal} detail={metricDetail} />
+        <MiniMetric title="Produtos Ativos" value={metricAtivos} detail={metricDetail} />
+        <MiniMetric title="Taxa de produtos ativos" value={metricPorcentagem} detail={metricDetail} />
       </div>
 
-      <div className="splitGrid twoColsTop">
-        <SectionCard title="Cadastro Rápido" subtitle="Cadastro completo do produto, contendo todos os campos necessários.">
-          <div className="filtersGrid">
-            <Field label="Nome do Produto" placeholder="Nome do produto" />
-            <Field label="Status" placeholder="Ativo, Inativo" />
-            <Field label="Preço PF" placeholder="R$ 0,00" type="text" />
-            <Field label="Preço CNPJ" placeholder="R$ 0,00" type="text" />
-            <Field label="Quantidade (Kg)" placeholder="0,000 Kg" type="text" />
-          </div>
+      <SectionCard title="Cadastro Rápido" subtitle="Cadastro completo do produto, contendo todos os campos necessários.">
+        <div className="filtersGrid">
+          <Field label="Nome do Produto" placeholder="Nome do produto" value={form.nome} onChange={(v) => handleFormChange('nome', v)} />
+          <Field label="Status" placeholder="Ativo, Inativo" value={form.status} onChange={(v) => handleFormChange('status', v)} />
+          <Field label="Preço PF" placeholder="R$ 0,00" type="text" value={form.precoPF} onChange={(v) => handleFormChange('precoPF', v)} />
+          <Field label="Preço CNPJ" placeholder="R$ 0,00" type="text" value={form.precoCNPJ} onChange={(v) => handleFormChange('precoCNPJ', v)} />
+          <Field label="Quantidade (Kg)" placeholder="0,000 Kg" type="text" value={form.quantidade} onChange={(v) => handleFormChange('quantidade', v)} />
+        </div>
 
-          <div className="sectionActions">
-            <button className="btn">Novo produto</button>
-            <button className="ghostBtn">Limpar campos</button>
-          </div>
-        </SectionCard>
-
-        <ApiBlueprintCard
-          title="Blueprint de endpoints"
-          items={API_BLUEPRINTS.products}
-          notes={[
-            'Tabela pronta para listagem paginada.',
-            'Formulário pode enviar multipart se houver imagem do produto.',
-            'Recomendado centralizar validações antes do POST e PATCH.',
-          ]}
-        />
-      </div>
+        <div className="sectionActions">
+          <button className="btn">
+            <Plus size={15} />
+            Novo produto
+          </button>
+          <button className="dangerBtn">
+            <Trash2 size={15} />
+            Deletar produto
+          </button>
+          <button className="ghostBtn" onClick={handleClear}>
+            <X size={15} />
+            Limpar campos
+          </button>
+        </div>
+      </SectionCard>
 
       <SectionCard title="Tabela base de produtos" subtitle="Estrutura visual pronta para receber paginação, ordenação e ações por linha.">
         <div className="table modernTable productsTable">
           <div className="row head rowProducts">
             <span>Produto</span>
-            <span>Categoria</span>
-            <span>Unidade</span>
-            <span>Preço</span>
+            <span>Preço PF</span>
+            <span>Preço CNPJ</span>
+            <span>Quantidade (Kg)</span>
             <span>Status</span>
-            <span>Integração</span>
           </div>
 
-          {PRODUCTS_ROWS.map((row) => (
-            <div className="row rowProducts" key={`${row.product}-${row.integration}`}>
+          {rows.map((row) => (
+            <div className="row rowProducts" key={row.product}>
               <span>{row.product}</span>
-              <span>{row.category}</span>
-              <span>{row.unit}</span>
-              <span>{row.price}</span>
+              <span>{row.pricePF}</span>
+              <span>{row.priceCNPJ}</span>
+              <span>{row.quantity}</span>
               <span>
                 <span className={cx('pill', row.status === 'Ativo' ? 'ok' : 'mid')}>{row.status}</span>
               </span>
-              <span className="monoText">{row.integration}</span>
             </div>
           ))}
         </div>
@@ -1178,11 +1245,16 @@ function ApiBlueprintCard({ title, items, notes }) {
   )
 }
 
-function Field({ label, placeholder, type = "text" }) {
+function Field({ label, placeholder, type = 'text', value, onChange }) {
   return (
     <label className="field">
       <span>{label}</span>
-      <input type={type} placeholder={placeholder} />
+      <input
+        type={type}
+        placeholder={placeholder}
+        value={value ?? ''}
+        onChange={onChange ? (e) => onChange(e.target.value) : undefined}
+      />
     </label>
   )
 }
