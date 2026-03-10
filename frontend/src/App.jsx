@@ -862,7 +862,7 @@ function ProductsPage() {
       setRows(normalizeTableRows(data))
     } catch {
       if (ignore?.current) return
-      setRows(normalizeTableRows(PRODUCTS_ROWS))
+      setRows(normalizeTableRows())
     } finally {
       if (!ignore?.current) setTableLoading(false)
     }
