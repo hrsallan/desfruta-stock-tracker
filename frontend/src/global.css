@@ -594,6 +594,19 @@ form {
   margin-bottom: 28px;
 }
 
+.pageStack {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.pageStack > .panel,
+.pageStack > .metricGrid,
+.pageStack > .heroCard,
+.pageStack > .splitGrid {
+  margin-top: 0 !important;
+}
+
 .h1 {
   margin: 0;
   font-size: 28px;

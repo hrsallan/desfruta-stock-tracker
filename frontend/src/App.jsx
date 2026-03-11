@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import {
-  Bell,
   ChevronLeft,
   ChevronRight,
   Home,
@@ -9,7 +8,6 @@ import {
   LogOut,
   Package,
   Plus,
-  Search,
   Trash2,
   Users,
   Warehouse,
@@ -597,15 +595,6 @@ function PageContent({ activeKey, userName }) {
         </div>
 
         <div className="topActions">
-          <div className="search">
-            <Search size={18} />
-            <input placeholder={`Pesquisar em ${current.label.toLowerCase()}...`} />
-          </div>
-
-          <button className="iconBtn" aria-label="Notificações">
-            <Bell size={18} />
-          </button>
-
           <div className="avatar" title={userName || 'Usuário'} aria-label={`Avatar de ${userName || 'usuário'}`}>
             <span>{userInitials}</span>
           </div>
@@ -671,21 +660,21 @@ function HomePage() {
   }, [metrics])
 
   return (
-    <>
+    <div className="pageStack">
       <section className="heroCard">
         <div>
           <span className="eyebrow">Painel principal</span>
-          <h2 className="heroTitle">Resumo central da operação com cards principais ligados à API.</h2>
+          <h2 className="heroTitle">Gestão de estoque, produtos e operação em tempo real.</h2>
           <p className="heroText">
-            Este bloco foi desenhado para ser a entrada do sistema, destacando peso total em Kg,
-            quantidade de variações disponíveis, faturamento mensal e o histórico recente da operação.
+            Acompanhe o total de Kg disponível, variações ativas e faturamento mensal
+            diretamente dos dados do banco.
           </p>
         </div>
 
         <div className="heroBadges">
-          <span className="softBadge">Visão diária</span>
-          <span className="softBadge">Consolidação mensal</span>
-          <span className="softBadge">API aplicada</span>
+          <span className="softBadge">Estoque</span>
+          <span className="softBadge">Produtos</span>
+          <span className="softBadge">Operação</span>
         </div>
       </section>
 
@@ -695,18 +684,8 @@ function HomePage() {
         ))}
       </div>
 
-      <ApiBlueprintCard
-        title="Integração sugerida para o menu principal"
-        items={API_BLUEPRINTS.home}
-        notes={[
-          'Os cards de Kg e variações disponíveis consomem o endpoint unificado /api/menu/metrics.',
-          'A resposta traz: kg_disponiveis, quantidade.disponiveis, quantidade.total e quantidade.porcentagem.',
-          'Popular a tabela de atividade com paginação ou limite de registros.',
-        ]}
-      />
-
       <RecentActivityTable />
-    </>
+    </div>
   )
 }
 
@@ -813,7 +792,7 @@ function ProductsPage() {
       return
     }
     if (quantidade_kg === null) {
-      notify({ type: 'error', title: 'Campo inválido', message: 'Informe a Quantidade em Kg válida (ex: 18,70).' })
+      notify({ type: 'error', title: 'Campo inválido', message: 'Informe a Quantidade em Kg válida (ex: 12,50).' })
       return
     }
 
@@ -893,7 +872,7 @@ function ProductsPage() {
           <Field label="Status" placeholder="Ativo, Inativo" value={form.status} onChange={(v) => handleFormChange('status', v)} />
           <Field label="Preço PF" placeholder="6,50" type="text" value={form.precoPF} onChange={(v) => handleFormChange('precoPF', v)} />
           <Field label="Preço CNPJ" placeholder="5,80" type="text" value={form.precoCNPJ} onChange={(v) => handleFormChange('precoCNPJ', v)} />
-          <Field label="Quantidade (Kg)" placeholder="18,70" type="text" value={form.quantidade} onChange={(v) => handleFormChange('quantidade', v)} />
+          <Field label="Quantidade (Kg)" placeholder="12,50" type="text" value={form.quantidade} onChange={(v) => handleFormChange('quantidade', v)} />
         </div>
 
         <div className="sectionActions">
