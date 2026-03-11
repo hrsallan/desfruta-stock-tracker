@@ -146,36 +146,8 @@ const STOCK_ROWS = [
   },
 ]
 
-const EMPLOYEE_ROWS = [
-  {
-    name: 'Amanda Souza',
-    role: 'Analista de Estoque',
-    unit: 'CD Principal',
-    profile: 'Operacional',
-    status: 'Ativo',
-  },
-  {
-    name: 'Bruno Lima',
-    role: 'Supervisor',
-    unit: 'Loja Centro',
-    profile: 'Gestão',
-    status: 'Ativo',
-  },
-  {
-    name: 'Carla Mendes',
-    role: 'Compradora',
-    unit: 'Matriz',
-    profile: 'Financeiro',
-    status: 'Férias',
-  },
-  {
-    name: 'Diego Alves',
-    role: 'Estoquista',
-    unit: 'Loja Norte',
-    profile: 'Operacional',
-    status: 'Ativo',
-  },
-]
+
+
 
 const API_BLUEPRINTS = {
   home: [
@@ -792,7 +764,7 @@ function ProductsPage() {
       return
     }
     if (quantidade_kg === null) {
-      notify({ type: 'error', title: 'Campo inválido', message: 'Informe a Quantidade em Kg válida (ex: 12,50).' })
+      notify({ type: 'error', title: 'Campo inválido', message: 'Informe a Quantidade em Kg válida (ex: 18,70).' })
       return
     }
 
@@ -852,8 +824,6 @@ function ProductsPage() {
   const metricTotal = metrics.loading ? 'Carregando...' : metrics.error ? '--' : String(metrics.total ?? '--')
   const metricAtivos = metrics.loading ? 'Carregando...' : metrics.error ? '--' : String(metrics.disponiveis ?? '--')
   const metricPorcentagem = metrics.loading ? 'Carregando...' : metrics.error ? '--' : metrics.porcentagem != null ? `${metrics.porcentagem}%` : '--'
-  const metricDetail = metrics.error ? 'Não foi possível carregar os dados da API.' : 'Retornado pela API /api/produtos/metricas'
-
   const isDeleting = deletingId !== null
 
   return (
@@ -861,9 +831,9 @@ function ProductsPage() {
       <Toast toast={toast} onClose={() => setToast(null)} />
 
       <div className="metricGrid compactMetrics">
-        <MiniMetric title="Produtos cadastrados" value={metricTotal} detail={metricDetail} />
-        <MiniMetric title="Produtos Ativos" value={metricAtivos} detail={metricDetail} />
-        <MiniMetric title="Taxa de produtos ativos" value={metricPorcentagem} detail={metricDetail} />
+        <MiniMetric title="Produtos cadastrados"    value={metricTotal}      detail="Total de produtos no sistema" />
+        <MiniMetric title="Produtos Ativos"          value={metricAtivos}     detail="Produtos disponíveis para venda" />
+        <MiniMetric title="Taxa de produtos ativos"  value={metricPorcentagem} detail="Percentual de produtos ativos" />
       </div>
 
       <SectionCard title="Cadastro Rápido" subtitle="Cadastro completo do produto, contendo todos os campos necessários.">
@@ -872,7 +842,7 @@ function ProductsPage() {
           <Field label="Status" placeholder="Ativo, Inativo" value={form.status} onChange={(v) => handleFormChange('status', v)} />
           <Field label="Preço PF" placeholder="6,50" type="text" value={form.precoPF} onChange={(v) => handleFormChange('precoPF', v)} />
           <Field label="Preço CNPJ" placeholder="5,80" type="text" value={form.precoCNPJ} onChange={(v) => handleFormChange('precoCNPJ', v)} />
-          <Field label="Quantidade (Kg)" placeholder="12,50" type="text" value={form.quantidade} onChange={(v) => handleFormChange('quantidade', v)} />
+          <Field label="Quantidade (Kg)" placeholder="18,70" type="text" value={form.quantidade} onChange={(v) => handleFormChange('quantidade', v)} />
         </div>
 
         <div className="sectionActions">
@@ -934,7 +904,7 @@ function ProductsPage() {
 
 function DashboardPage() {
   return (
-    <>
+    <div className="pageStack">
       <div className="metricGrid compactMetrics">
         {DASHBOARD_SUMMARY.map((item) => (
           <MiniMetric key={item.label} title={item.label} value={item.value} detail={item.note} />
@@ -986,137 +956,166 @@ function DashboardPage() {
           </div>
         </SectionCard>
       </div>
-
-      <ApiBlueprintCard
-        title="Integração sugerida para análises"
-        items={API_BLUEPRINTS.dashboard}
-        notes={[
-          'Separar dados de cards e gráficos em endpoints independentes melhora desempenho.',
-          'Ideal usar parâmetros de período e unidade no backend.',
-          'Adicionar cache local para evitar consultas repetidas em filtros iguais.',
-        ]}
-      />
-    </>
+    </div>
   )
 }
 
 function StockPage() {
   return (
-    <>
+    <div className="pageStack">
       <div className="metricGrid compactMetrics">
         <MiniMetric title="Saldo total" value="38.940 Kg" detail="Consolidado do estoque atual" />
         <MiniMetric title="Entradas hoje" value="4.280 Kg" detail="Movimentação recebida no dia" />
         <MiniMetric title="Saídas hoje" value="3.860 Kg" detail="Pedidos e baixas operacionais" />
       </div>
 
-      <div className="splitGrid twoColsTop">
-        <SectionCard title="Posição de estoque" subtitle="Tabela central para saldos, mínimos, localização e alertas.">
-          <div className="table modernTable stockTable">
-            <div className="row head rowStock">
-              <span>Produto</span>
-              <span>Local</span>
-              <span>Saldo</span>
-              <span>Mínimo</span>
-              <span>Status</span>
-            </div>
-
-            {STOCK_ROWS.map((row) => (
-              <div className="row rowStock" key={`${row.product}-${row.location}`}>
-                <span>{row.product}</span>
-                <span>{row.location}</span>
-                <span>{row.balance}</span>
-                <span>{row.min}</span>
-                <span>
-                  <span
-                    className={cx(
-                      'pill',
-                      row.status === 'Saudável' ? 'ok' : row.status === 'Reposição' ? 'bad' : 'mid',
-                    )}
-                  >
-                    {row.status}
-                  </span>
-                </span>
-              </div>
-            ))}
+      <SectionCard title="Posição de estoque" subtitle="Tabela central para saldos, mínimos, localização e alertas.">
+        <div className="table modernTable stockTable">
+          <div className="row head rowStock">
+            <span>Produto</span>
+            <span>Local</span>
+            <span>Saldo</span>
+            <span>Mínimo</span>
+            <span>Status</span>
           </div>
-        </SectionCard>
 
-        <ApiBlueprintCard
-          title="Integração sugerida para estoque"
-          items={API_BLUEPRINTS.stock}
-          notes={[
-            'Útil separar saldo consolidado de movimentações detalhadas.',
-            'Entradas e saídas podem usar o mesmo form com tipo de movimento.',
-            'Alertas de ruptura podem ser calculados no backend ou no frontend.',
-          ]}
-        />
-      </div>
-    </>
+          {STOCK_ROWS.map((row) => (
+            <div className="row rowStock" key={`${row.product}-${row.location}`}>
+              <span>{row.product}</span>
+              <span>{row.location}</span>
+              <span>{row.balance}</span>
+              <span>{row.min}</span>
+              <span>
+                <span
+                  className={cx(
+                    'pill',
+                    row.status === 'Saudável' ? 'ok' : row.status === 'Reposição' ? 'bad' : 'mid',
+                  )}
+                >
+                  {row.status}
+                </span>
+              </span>
+            </div>
+          ))}
+        </div>
+      </SectionCard>
+    </div>
   )
 }
 
 function EmployeesPage() {
+  const [metrics, setMetrics] = useState({ loading: true, error: false, total: null, ativos: null, cargos: null })
+  const [rows, setRows] = useState([])
+  const [tableLoading, setTableLoading] = useState(true)
+
+  useEffect(() => {
+    let ignore = false
+
+    async function loadMetrics() {
+      try {
+        const res = await api.get('/api/funcionarios/metricas')
+        if (ignore) return
+        const data = res?.data ?? {}
+        setMetrics({
+          loading: false,
+          error: false,
+          total:  data.total_funcionarios ?? null,
+          ativos: data.funcionarios_ativos ?? null,
+          cargos: data.total_cargos ?? null,
+        })
+      } catch {
+        if (ignore) return
+        setMetrics({ loading: false, error: true, total: null, ativos: null, cargos: null })
+      }
+    }
+
+    async function loadTabela() {
+      try {
+        const res = await api.get('/api/funcionarios/tabela')
+        if (ignore) return
+        setRows(Array.isArray(res?.data?.dados) ? res.data.dados : [])
+      } catch {
+        if (ignore) return
+        setRows([])
+      } finally {
+        if (!ignore) setTableLoading(false)
+      }
+    }
+
+    loadMetrics()
+    loadTabela()
+    return () => { ignore = true }
+  }, [])
+
+  function isAtivo(ultimoAcesso) {
+    if (!ultimoAcesso) return false
+    const ultimo = new Date(ultimoAcesso)
+    if (isNaN(ultimo)) return false
+    const diffHoras = (Date.now() - ultimo.getTime()) / (1000 * 60 * 60)
+    return diffHoras < 24
+  }
+
+  function formatAcesso(ultimoAcesso) {
+    if (!ultimoAcesso) return '—'
+    const d = new Date(ultimoAcesso)
+    if (isNaN(d)) return ultimoAcesso
+    return d.toLocaleString('pt-BR', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    })
+  }
+
+  const val = (v) => metrics.loading ? 'Carregando...' : metrics.error ? '--' : String(v ?? '--')
+
   return (
-    <>
+    <div className="pageStack">
       <div className="metricGrid compactMetrics">
-        <MiniMetric title="Funcionários ativos" value="42" detail="Total em operação" />
-        <MiniMetric title="Perfis cadastrados" value="05" detail="Operacional, gestão, compras, etc." />
-        <MiniMetric title="Unidades com equipe" value="06" detail="Distribuição da força de trabalho" />
+        <MiniMetric title="Funcionários Cadastrados" value={val(metrics.total)}  detail="Total de funcionários no sistema" />
+        <MiniMetric title="Funcionários Ativos"      value={val(metrics.ativos)} detail="Com acesso nas últimas 24h" />
+        <MiniMetric title="Quantidade de Cargos"     value={val(metrics.cargos)} detail="Cargos distintos cadastrados" />
       </div>
 
-      <div className="splitGrid twoColsTop">
-        <SectionCard title="Base de colaboradores" subtitle="Tabela preparada para integrar permissões, cargo e situação atual.">
-          <div className="table modernTable employeesTable">
-            <div className="row head rowEmployees">
-              <span>Nome</span>
-              <span>Cargo</span>
-              <span>Unidade</span>
-              <span>Perfil</span>
-              <span>Status</span>
-            </div>
+      <SectionCard title="Base de colaboradores" subtitle="Tabela de funcionários carregada da API.">
+        <div className="table modernTable employeesTable">
+          <div className="row head rowEmployees">
+            <span>Nome</span>
+            <span>Empresa</span>
+            <span>Cargo</span>
+            <span>Último Acesso</span>
+            <span>Status</span>
+          </div>
 
-            {EMPLOYEE_ROWS.map((row) => (
-              <div className="row rowEmployees" key={`${row.name}-${row.unit}`}>
-                <span>{row.name}</span>
-                <span>{row.role}</span>
-                <span>{row.unit}</span>
-                <span>{row.profile}</span>
+          {tableLoading && (
+            <div className="row rowEmployees">
+              <span style={{ gridColumn: '1 / -1', opacity: 0.5, padding: '4px 0' }}>Carregando...</span>
+            </div>
+          )}
+
+          {!tableLoading && rows.length === 0 && (
+            <div className="row rowEmployees">
+              <span style={{ gridColumn: '1 / -1', opacity: 0.5, padding: '4px 0' }}>Nenhum dado disponível.</span>
+            </div>
+          )}
+
+          {!tableLoading && rows.map((row, idx) => {
+            const ativo = isAtivo(row.ultimo_acesso)
+            return (
+              <div className="row rowEmployees" key={idx}>
+                <span>{row.nome ?? '—'}</span>
+                <span>{row.empresa ?? '—'}</span>
+                <span>{row.role ?? '—'}</span>
+                <span>{formatAcesso(row.ultimo_acesso)}</span>
                 <span>
-                  <span className={cx('pill', row.status === 'Ativo' ? 'ok' : 'mid')}>{row.status}</span>
+                  <span className={cx('pill', ativo ? 'ok' : 'bad')}>
+                    {ativo ? 'Ativo' : 'Inativo'}
+                  </span>
                 </span>
               </div>
-            ))}
-          </div>
-        </SectionCard>
-
-        <SectionCard title="Perfis e permissões" subtitle="Base visual para controlar acessos por módulo.">
-          <div className="permissionList">
-            <div className="permissionItem">
-              <strong>Operacional</strong>
-              <span>Acesso a estoque, produtos e atividades recentes.</span>
-            </div>
-            <div className="permissionItem">
-              <strong>Gestão</strong>
-              <span>Acesso completo a dashboard, faturamento e relatórios.</span>
-            </div>
-            <div className="permissionItem">
-              <strong>Financeiro</strong>
-              <span>Consulta de faturamento, custos e fechamento mensal.</span>
-            </div>
-          </div>
-        </SectionCard>
-      </div>
-
-      <ApiBlueprintCard
-        title="Integração sugerida para funcionários"
-        items={API_BLUEPRINTS.employees}
-        notes={[
-          'Separar autenticação de cadastro de colaboradores ajuda na manutenção.',
-          'Recomendado trazer permissões junto com o perfil de acesso.',
-          'Pode ser interessante cachear a lista de perfis para formulários.',
-        ]}
-      />
-    </>
+            )
+          })}
+        </div>
+      </SectionCard>
+    </div>
   )
 }
 
@@ -1289,33 +1288,6 @@ function SectionCard({ title, subtitle, children }) {
   )
 }
 
-function ApiBlueprintCard({ title, items, notes }) {
-  return (
-    <section className="panel apiPanel">
-      <div className="panelHeader innerGap">
-        <div>
-          <h2 className="h2">{title}</h2>
-          <p className="sectionSubtitle">Pontos sugeridos para integrar as futuras APIs.</p>
-        </div>
-      </div>
-
-      <div className="apiList">
-        {items.map((item) => (
-          <div className="apiItem" key={item}>
-            <span className="apiMethod">API</span>
-            <code>{item}</code>
-          </div>
-        ))}
-      </div>
-
-      <ul className="apiNotes">
-        {notes.map((note) => (
-          <li key={note}>{note}</li>
-        ))}
-      </ul>
-    </section>
-  )
-}
 
 function Field({ label, placeholder, type = 'text', value, onChange }) {
   return (

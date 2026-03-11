@@ -1142,7 +1142,7 @@ form {
 }
 
 .rowEmployees {
-  grid-template-columns: minmax(170px, 1.1fr) minmax(170px, 1fr) minmax(130px, 0.9fr) 120px 100px;
+  grid-template-columns: minmax(160px, 1.2fr) minmax(140px, 1fr) minmax(150px, 1fr) 160px 100px;
 }
 
 .pill {

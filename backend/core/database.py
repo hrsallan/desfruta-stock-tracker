@@ -45,7 +45,9 @@ def inicializar_banco():
             nome TEXT,
             username TEXT UNIQUE,
             password TEXT,
-            role TEXT
+            role TEXT,
+            empresa TEXT,
+            ultimo_acesso DATETIME DEFAULT (datetime('now', '-3 hours'))
         )
         """)
 
@@ -82,12 +84,12 @@ def inicializar_banco():
 # --- Funções ---
 
 # Função para registrar um novo usuário
-def registrar_usuario(nome, username, password, role):
+def registrar_usuario(nome, username, password, role, empresa):
     try:
         with sqlite3.connect(db_path) as conn:
             pwd_hash = generate_password_hash(password)
-            conn.execute('INSERT INTO users (nome, username, password, role) VALUES (?, ?, ?, ?)', 
-                        (nome, username, pwd_hash, role))
+            conn.execute('INSERT INTO users (nome, username, password, role, empresa) VALUES (?, ?, ?, ?, ?)', 
+                        (nome, username, pwd_hash, role, empresa))
     except sqlite3.IntegrityError:
         raise ValueError("Username já existe. Escolha outro.")
 
@@ -98,6 +100,20 @@ def login_usuario(username, password):
         cursor.execute('SELECT password FROM users WHERE username = ?', (username,))
         user = cursor.fetchone()
         return user and check_password_hash(user[0], password)
+    
+# Função Atualizar o último acesso do usuário
+def atualizar_ultimo_acesso(username):
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        br_time = datetime.now(timezone(timedelta(hours=-3))).strftime('%Y-%m-%d %H:%M:%S')
+        cursor.execute("UPDATE users SET ultimo_acesso = ? WHERE username = ?", (br_time, username))
+        conn.commit()
+    except sqlite3.Error as e:
+        print(f"Erro ao atualizar último acesso: {e}")
+    finally:
+        if conn:
+            conn.close()
     
 # Função para informações do usuário pelo username
 def obter_info_usuario_por_username(username):
@@ -196,6 +212,22 @@ def deletar_logs_totais():
     finally:
         if conn:
             conn.close()
+    
+def obter_metricas_funcionarios():
+    with sqlite3.connect(db_path) as conn:
+        cursor = conn.cursor()
+        total_funcionarios = cursor.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+        total_cargos = cursor.execute("SELECT COUNT(DISTINCT role) FROM users").fetchone()[0]
+        funcionarios_ativos = cursor.execute("SELECT COUNT(*) FROM users WHERE ultimo_acesso >= datetime('now', '-1 days')").fetchone()[0]
+        return {"total_funcionarios": total_funcionarios, "total_cargos": total_cargos, "funcionarios_ativos": funcionarios_ativos}
+    
+def tabela_funcionarios():
+    with sqlite3.connect(db_path) as conn:
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT nome, role, empresa, ultimo_acesso FROM users ORDER BY nome ASC")
+        funcionarios = cursor.fetchall()
+        return [dict(funcionario) for funcionario in funcionarios]
     
 # --- Execução ---
 if __name__ == "__main__":

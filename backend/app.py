@@ -2,8 +2,8 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from core.database import (
-registrar_usuario, login_usuario, obter_logs, obter_info_usuario_por_username, verificar_produtos_menu,
-tabela_produtos, cadastrar_produto, deletar_produto, registrar_log, deletar_logs_totais
+registrar_usuario, login_usuario, obter_logs, obter_info_usuario_por_username, verificar_produtos_menu, obter_metricas_funcionarios,
+tabela_produtos, cadastrar_produto, deletar_produto, registrar_log, deletar_logs_totais, atualizar_ultimo_acesso, tabela_funcionarios
 )
 import os
 from dotenv import load_dotenv
@@ -42,6 +42,7 @@ def login():
         if verify:
             access_token = create_access_token(identity=username)
             usuario = obter_info_usuario_por_username(username)
+            atualizar_ultimo_acesso(username)
             return jsonify({
                 "msg": "sucess",
                 "token": access_token,
@@ -58,9 +59,10 @@ def register():
     username = dados.get('username')
     password = dados.get('password')
     role = dados.get('role')
+    empresa = dados.get('empresa')
 
     try:
-        registrar_usuario(nome, username, password, role)
+        registrar_usuario(nome, username, password, role, empresa)
         return jsonify({"msg": "Usuário registrado com sucesso!"}), 201
     except Exception as e:
         return jsonify({"msg": "Erro ao registrar usuário", "error": str(e)}), 500
@@ -191,18 +193,41 @@ def deletar_produtodb():
         return jsonify({"status": "erro", "mensagem": str(e)}), 500
     
 # -------------------------
-# Api's em desenvolvimento
+# APIs Funcionários
 # -------------------------
-@app.route('/api/menu/faturamento-mensal', methods=['GET'])
+@app.route('/api/funcionarios/metricas', methods=['GET'])
 @jwt_required()
-def faturamento_mensal():
-    pass
+def funcionarios_metricas():
+    try:
+        dados = obter_metricas_funcionarios()
+        total_funcionarios = dados.get('total_funcionarios', 0)
+        total_cargos = dados.get('total_cargos', 0)
+        funcionarios_ativos = dados.get('funcionarios_ativos', 0)
+        return jsonify({
+            "total_funcionarios": total_funcionarios,
+            "total_cargos": total_cargos,
+            "funcionarios_ativos": funcionarios_ativos
+        }), 200
+    except Exception as e:
+        return jsonify({"status": "erro", "mensagem": str(e)}), 500
 
-@app.route('/api/menu/atividade-recente', methods=['GET'])
+@app.route('/api/funcionarios/tabela', methods=['GET'])
 @jwt_required()
-def atividade_recente():
-    pass
-
+def tabela_funcionarios_completa():
+    try:
+        lista_funcionarios = tabela_funcionarios()
+        dados = [
+            {
+                "nome": f["nome"],
+                "role": f["role"].capitalize() if f.get("role") else "Funcionário",
+                "empresa": f["empresa"],
+                "ultimo_acesso": f["ultimo_acesso"]
+            }
+            for f in lista_funcionarios
+        ]
+        return jsonify({"status": "sucesso", "dados": dados}), 200
+    except Exception as e:
+        return jsonify({"status": "erro", "mensagem": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
