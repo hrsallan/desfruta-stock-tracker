@@ -2,8 +2,8 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from core.database import (
-registrar_usuario, login_usuario, obter_usuario_por_username, verificar_produtos_disponiveis, 
-verificar_kg_disponiveis, tabela_produtos, cadastrar_produto, deletar_produto
+registrar_usuario, login_usuario, verificar_produtos_disponiveis, obter_logs, obter_info_usuario_por_username,
+verificar_kg_disponiveis, tabela_produtos, cadastrar_produto, deletar_produto, registrar_log, deletar_logs_totais
 )
 import os
 from dotenv import load_dotenv
@@ -39,7 +39,7 @@ def login():
     try:
         if verify:
             access_token = create_access_token(identity=username)
-            usuario = obter_usuario_por_username(username)
+            usuario = obter_info_usuario_por_username(username)
             return jsonify({
                 "msg": "sucess",
                 "token": access_token,
@@ -67,13 +67,44 @@ def register():
 @jwt_required()
 def me():
     username = get_jwt_identity()
-    usuario = obter_usuario_por_username(username)
+    usuario = obter_info_usuario_por_username(username)
 
     if not usuario:
         return jsonify({"msg": "Usuário não encontrado"}), 404
 
     return jsonify({"user": usuario}), 200
 
+# -------------------------
+# Api's de Logs 
+# -------------------------
+@app.route('/api/logs', methods=['GET'])
+@jwt_required()
+def logs():
+    try:
+        dados = obter_logs()
+        return jsonify({"status": "sucesso", "dados": dados}), 200
+    except Exception as e:
+        return jsonify({"status": "erro", "mensagem": str(e)}), 500
+
+@app.route('/api/logs', methods=['DELETE'])
+@jwt_required()
+def deletar_logs():
+    try:
+        # Informações do usuário
+        username = get_jwt_identity()
+        info_user = obter_info_usuario_por_username(username)
+        nome_usuario = info_user['nome']
+        id_usuario = info_user['user_id']
+        role_usuario = info_user['role']
+        # Verificar se o usuário é desenvolvedor
+        if role_usuario == 'desenvolvedor':
+            deletar_logs_totais()
+            return jsonify({"status": "sucesso", "mensagem": "Logs deletados com sucesso!"}), 200
+        else:
+            return jsonify({"status": "erro", "mensagem": "Acesso negado. Apenas desenvolvedores podem deletar os logs."}), 403
+    except Exception as e:
+        return jsonify({"status": "erro", "mensagem": "Algo deu errado! Tente Novamente Mais Tarde! "}), 500
+    
 # -------------------------
 # Api's do Menu Principal
 # -------------------------
@@ -94,7 +125,6 @@ def kg_disponiveis():
         return jsonify({"status": "sucesso", "kg_disponiveis": kg}), 200
     except Exception as e:
         return jsonify({"status": "erro", "mensagem": str(e)}), 500
-
 
 # -------------------------
 # Api's Gerenciar Produtos
@@ -121,6 +151,12 @@ def tabela_produtos_completa():
 @jwt_required()
 def cadastrar_novo_produto():
     try:
+        # Informações do usuário
+        username = get_jwt_identity()
+        info_user = obter_info_usuario_por_username(username)
+        nome_usuario = info_user['nome']
+        id_usuario = info_user['user_id']
+        # Dados do produto
         dados = request.get_json()
         sabor = dados.get('sabor')
         preco_pf = dados.get('preco_pf')
@@ -130,8 +166,8 @@ def cadastrar_novo_produto():
 
         if not all([sabor, preco_pf, preco_cnpj, quantidade_kg, disponivel is not None]):
             return jsonify({"status": "erro", "mensagem": "Todos os campos são obrigatórios"}), 400
-
         cadastrar_produto(sabor, preco_pf, preco_cnpj, quantidade_kg, disponivel)
+        registrar_log(nome_usuario, id_usuario, f"Cadastrou o produto {sabor}")
         return jsonify({"status": "sucesso", "mensagem": "Produto cadastrado com sucesso!"}), 201
     except Exception as e:
         return jsonify({"status": "erro", "mensagem": str(e)}), 500
@@ -140,12 +176,19 @@ def cadastrar_novo_produto():
 @jwt_required()
 def deletar_produtodb():
     try:
+        # Informações do usuário
+        username = get_jwt_identity()
+        info_user = obter_info_usuario_por_username(username)
+        nome_usuario = info_user['nome']
+        id_usuario = info_user['user_id']
+        # Dados do produto
         dados = request.get_json()
         sabor = dados.get('sabor')
         print(sabor)
         if not sabor:
             return jsonify({"status": "erro", "mensagem": "Campo 'sabor' é obrigatório"}), 400
         deletar_produto(sabor)
+        registrar_log(nome_usuario, id_usuario, f"Deletou o produto {sabor}")
         return jsonify({"status": "sucesso", "mensagem": "Produto deletado com sucesso!"}), 200
     except ValueError as ve:
         return jsonify({"status": "erro", "mensagem": str(ve)}), 404

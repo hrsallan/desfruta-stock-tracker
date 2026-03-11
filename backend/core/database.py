@@ -48,6 +48,17 @@ def inicializar_banco():
         )
         """)
 
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome_usuario TEXT,
+            user_id INTEGER,
+            acao TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(user_id)
+        )
+        """)
+
         produtos_padrao = [
             ("Abacaxi", 28.0, 23.0, 0, 0), ("Aba.Hortelã", 30.0, 25.0, 0, 0),
             ("Açaí", 33.0, 30.0, 0, 0), ("Acerola", 28.0, 23.0, 0, 0),
@@ -71,10 +82,13 @@ def inicializar_banco():
 
 # Função para registrar um novo usuário
 def registrar_usuario(nome, username, password, role):
-    with sqlite3.connect(db_path) as conn:
-        pwd_hash = generate_password_hash(password)
-        conn.execute('INSERT INTO users (nome, username, password, role) VALUES (?, ?, ?, ?)', 
-                     (nome, username, pwd_hash, role))
+    try:
+        with sqlite3.connect(db_path) as conn:
+            pwd_hash = generate_password_hash(password)
+            conn.execute('INSERT INTO users (nome, username, password, role) VALUES (?, ?, ?, ?)', 
+                        (nome, username, pwd_hash, role))
+    except sqlite3.IntegrityError:
+        raise ValueError("Username já existe. Escolha outro.")
 
 # Função para autenticar usuário
 def login_usuario(username, password):
@@ -83,9 +97,9 @@ def login_usuario(username, password):
         cursor.execute('SELECT password FROM users WHERE username = ?', (username,))
         user = cursor.fetchone()
         return user and check_password_hash(user[0], password)
-        
-# Função para obter os dados completos do usuário
-def obter_usuario_por_username(username):
+    
+# Função para informações do usuário pelo username
+def obter_info_usuario_por_username(username):
     with sqlite3.connect(db_path) as conn:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
@@ -154,6 +168,38 @@ def deletar_produto(sabor):
         conn.execute('DELETE FROM produtos_padrao WHERE sabor = ?', (sabor,))
         if conn.total_changes == 0:
             raise ValueError("Produto não encontrado para exclusão.") 
+    
+# Função para registrar uma ação no log
+def registrar_log(nome_usuario, user_id, acao):
+    try:
+        with sqlite3.connect(db_path) as conn:
+            conn.execute('INSERT INTO logs (nome_usuario, user_id, acao) VALUES (?, ?, ?)', 
+                        (nome_usuario, user_id, acao))
+    except Exception as e:
+        print(f"Erro ao registrar log: {e}")
+
+# Função para obter os logs
+def obter_logs():
+    with sqlite3.connect(db_path) as conn:
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT nome_usuario, acao, timestamp FROM logs ORDER BY timestamp DESC")
+        logs = cursor.fetchall()
+        return [dict(log) for log in logs]
+    
+# Função para deletar os logs
+def deletar_logs_totais():
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM logs")
+        conn.commit() 
+        print(f"Logs deletados com sucesso. Linhas afetadas: {cursor.rowcount}")
+    except sqlite3.Error as e:
+        print(f"Erro no banco de dados: {e}")
+    finally:
+        if conn:
+            conn.close()
     
 # --- Execução ---
 if __name__ == "__main__":

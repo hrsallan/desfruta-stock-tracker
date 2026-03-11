@@ -925,7 +925,7 @@ function ProductsPage() {
       return
     }
     if (quantidade_kg === null) {
-      notify({ type: 'error', title: 'Campo inválido', message: 'Informe a Quantidade em Kg válida (ex: 3250).' })
+      notify({ type: 'error', title: 'Campo inválido', message: 'Informe a Quantidade em Kg válida (ex: 18,70).' })
       return
     }
 
@@ -1005,7 +1005,7 @@ function ProductsPage() {
           <Field label="Status" placeholder="Ativo, Inativo" value={form.status} onChange={(v) => handleFormChange('status', v)} />
           <Field label="Preço PF" placeholder="6,50" type="text" value={form.precoPF} onChange={(v) => handleFormChange('precoPF', v)} />
           <Field label="Preço CNPJ" placeholder="5,80" type="text" value={form.precoCNPJ} onChange={(v) => handleFormChange('precoCNPJ', v)} />
-          <Field label="Quantidade (Kg)" placeholder="3250" type="text" value={form.quantidade} onChange={(v) => handleFormChange('quantidade', v)} />
+          <Field label="Quantidade (Kg)" placeholder="18,70" type="text" value={form.quantidade} onChange={(v) => handleFormChange('quantidade', v)} />
         </div>
 
         <div className="sectionActions">
