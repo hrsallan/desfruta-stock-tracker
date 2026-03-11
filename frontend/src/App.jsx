@@ -1075,7 +1075,7 @@ function EmployeesPage() {
         <MiniMetric title="Quantidade de Cargos"     value={val(metrics.cargos)} detail="Cargos distintos cadastrados" />
       </div>
 
-      <SectionCard title="Base de colaboradores" subtitle="Tabela de funcionários carregada da API.">
+      <SectionCard title="Tabela de Funcionários" subtitle="Visualização completa dos funcionários cadastrados na plataforma.">
         <div className="table modernTable employeesTable">
           <div className="row head rowEmployees">
             <span>Nome</span>
@@ -1113,6 +1113,27 @@ function EmployeesPage() {
               </div>
             )
           })}
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Cadastro de funcionário" subtitle="Preencha os campos para registrar um novo funcionário no sistema.">
+        <div className="filtersGrid">
+          <Field label="Nome"    placeholder="Nome completo"   value="" onChange={() => {}} />
+          <Field label="Usuário" placeholder="Nome de usuário" value="" onChange={() => {}} />
+          <Field label="Senha"   placeholder="Senha de acesso" type="password" value="" onChange={() => {}} />
+          <Field label="Cargo"   placeholder="Ex: Estoquista"  value="" onChange={() => {}} />
+          <Field label="Empresa" placeholder="Ex: Desfruta CD" value="" onChange={() => {}} />
+        </div>
+
+        <div className="sectionActions">
+          <button className="btn" disabled>
+            <Plus size={15} />
+            Cadastrar funcionário
+          </button>
+          <button className="ghostBtn" disabled>
+            <X size={15} />
+            Limpar campos
+          </button>
         </div>
       </SectionCard>
     </div>
