@@ -1,6 +1,7 @@
 import sqlite3
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime, timezone, timedelta
 
 db_path = 'backend/data/desfrutastock.db'
 
@@ -54,7 +55,7 @@ def inicializar_banco():
             nome_usuario TEXT,
             user_id INTEGER,
             acao TEXT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            timestamp DATETIME DEFAULT (datetime('now', '-3 hours')),
             FOREIGN KEY (user_id) REFERENCES users(user_id)
         )
         """)
@@ -108,23 +109,17 @@ def obter_info_usuario_por_username(username):
         return dict(resultado) if resultado else None
     
 # Função para verificar quantos produtos estão disponíveis
-def verificar_produtos_disponiveis():
+def verificar_produtos_menu():
     with sqlite3.connect(db_path) as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT COUNT(*) FROM produtos_padrao WHERE disponivel = 1")
         disponiveis = cursor.fetchone()[0]
         cursor.execute("SELECT COUNT(*) FROM produtos_padrao")
         total = cursor.fetchone()[0]
-        porcentagem = (int(disponiveis) / int(total) * 100) if total > 0 else 0
-        return {"disponiveis": disponiveis, "total": total, "porcentagem": porcentagem}
-        
-# Função que verifica a quantidade de kg disponíveis
-def verificar_kg_disponiveis():
-    with sqlite3.connect(db_path) as conn:
-        cursor = conn.cursor()
         cursor.execute("SELECT SUM(quantidade_kg) FROM produtos_padrao WHERE disponivel = 1")
         kg_disponiveis = cursor.fetchone()[0] or 0
-        return kg_disponiveis
+        porcentagem = (int(disponiveis) / int(total) * 100) if total > 0 else 0
+        return {"disponiveis": disponiveis, "total": total, "porcentagem": porcentagem, "kg_disponiveis": kg_disponiveis}
     
 # Função para obter a tabela completa de produtos
 def tabela_produtos():
@@ -172,9 +167,10 @@ def deletar_produto(sabor):
 # Função para registrar uma ação no log
 def registrar_log(nome_usuario, user_id, acao):
     try:
+        br_time = datetime.now(timezone(timedelta(hours=-3))).strftime('%Y-%m-%d %H:%M:%S')
         with sqlite3.connect(db_path) as conn:
-            conn.execute('INSERT INTO logs (nome_usuario, user_id, acao) VALUES (?, ?, ?)', 
-                        (nome_usuario, user_id, acao))
+            conn.execute('INSERT INTO logs (nome_usuario, user_id, acao, timestamp) VALUES (?, ?, ?, ?)', 
+                        (nome_usuario, user_id, acao, br_time))
     except Exception as e:
         print(f"Erro ao registrar log: {e}")
 

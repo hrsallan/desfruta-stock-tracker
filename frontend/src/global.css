@@ -1117,7 +1117,7 @@ form {
 }
 
 .rowActivity {
-  grid-template-columns: 180px minmax(0, 1fr) 160px;
+  grid-template-columns: 175px 160px minmax(0, 1fr);
 }
 
 .rowProducts {
@@ -1295,7 +1295,7 @@ form {
   }
 
   .rowActivity {
-    grid-template-columns: 140px minmax(0, 1fr) 130px;
+    grid-template-columns: 140px 130px minmax(0, 1fr);
   }
 }
 
@@ -1356,7 +1356,7 @@ form {
   }
 
   .rowActivity {
-    min-width: 560px;
+    min-width: 680px;
   }
 }
 

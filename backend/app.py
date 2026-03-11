@@ -2,17 +2,19 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from core.database import (
-registrar_usuario, login_usuario, verificar_produtos_disponiveis, obter_logs, obter_info_usuario_por_username,
-verificar_kg_disponiveis, tabela_produtos, cadastrar_produto, deletar_produto, registrar_log, deletar_logs_totais
+registrar_usuario, login_usuario, obter_logs, obter_info_usuario_por_username, verificar_produtos_menu,
+tabela_produtos, cadastrar_produto, deletar_produto, registrar_log, deletar_logs_totais
 )
 import os
 from dotenv import load_dotenv
+from datetime import timedelta
 
 
 app = Flask(__name__)
 CORS(app)
 load_dotenv()
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=8)
 jwt = JWTManager(app)
 
 # -------------------------
@@ -108,21 +110,14 @@ def deletar_logs():
 # -------------------------
 # Api's do Menu Principal
 # -------------------------
-@app.route("/api/menu/produtos-disponiveis", methods=['GET'])
+@app.route("/api/menu/metrics", methods=['GET'])
 @jwt_required()
-def produtos_disponiveis():
+def menu_metrics():
     try:
-        dados = verificar_produtos_disponiveis()
-        return jsonify({"status": "sucesso", "dados": dados}), 200
-    except Exception as e:
-        return jsonify({"status": "erro", "mensagem": str(e)}), 500
-    
-@app.route("/api/menu/kg-disponiveis", methods=['GET'])
-@jwt_required()
-def kg_disponiveis():
-    try:
-        kg = verificar_kg_disponiveis()
-        return jsonify({"status": "sucesso", "kg_disponiveis": kg}), 200
+        dados = verificar_produtos_menu()
+        dados_variacoes = {key: dados[key] for key in ['disponiveis', 'total', 'porcentagem']}
+        total_kg = dados.get('kg_disponiveis', 0)
+        return jsonify({"status": "sucesso", "quantidade": dados_variacoes, "kg_disponiveis": total_kg}), 200
     except Exception as e:
         return jsonify({"status": "erro", "mensagem": str(e)}), 500
 
@@ -133,7 +128,7 @@ def kg_disponiveis():
 @jwt_required()
 def produtos_metricas():         
     try:
-        dados = verificar_produtos_disponiveis()
+        dados = verificar_produtos_menu()
         return jsonify({"disponiveis": dados["disponiveis"], "total": dados["total"], "porcentagem": dados['porcentagem']}), 200
     except Exception as e:
         return jsonify({"status": "erro", "mensagem": str(e)}), 500

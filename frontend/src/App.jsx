@@ -58,15 +58,15 @@ const HOME_METRICS = [
   {
     key: 'totalKg',
     label: 'Total de Produtos em Kg',
-    value: '248.730 Kg',
-    hint: 'Integração ativa com /api/menu/kg-disponiveis para mostrar o total disponível em Kg.',
+    value: '--',
+    hint: 'Integração ativa com /api/menu/metrics.',
     tone: 'green',
   },
   {
     key: 'availability',
     label: 'Variações disponíveis',
-    value: '14/20',
-    hint: 'Integração ativa com /api/menu/produtos-disponiveis para mostrar disponíveis/total.',
+    value: '--',
+    hint: 'Integração ativa com /api/menu/metrics.',
     tone: 'orange',
   },
   {
@@ -78,14 +78,7 @@ const HOME_METRICS = [
   },
 ]
 
-const RECENT_ACTIVITY = [
-  { date: '09/03/2026 08:12', action: 'Entrada de lote de banana prata', status: 'Concluído' },
-  { date: '09/03/2026 08:47', action: 'Ajuste de peso no item Abacaxi Pérola', status: 'Em andamento' },
-  { date: '09/03/2026 09:03', action: 'Conferência de estoque do setor hortifruti', status: 'Pendente' },
-  { date: '09/03/2026 09:18', action: 'Atualização de preço em produtos premium', status: 'Concluído' },
-  { date: '09/03/2026 10:02', action: 'Cadastro de nova variação de manga palmer', status: 'Em andamento' },
-  { date: '09/03/2026 10:16', action: 'Validação de inventário do CD principal', status: 'Pendente' },
-]
+
 
 const PRODUCTS_ROWS = [
   {
@@ -188,9 +181,8 @@ const EMPLOYEE_ROWS = [
 
 const API_BLUEPRINTS = {
   home: [
-    'GET /api/menu/kg-disponiveis',
-    'GET /api/menu/produtos-disponiveis',
-    'GET /api/home/activity/recent',
+    'GET /api/menu/metrics',
+    'GET /api/logs',
     'GET /api/home/revenue/monthly',
   ],
   products: [
@@ -310,38 +302,8 @@ function getInitials(fullName = '') {
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
 }
 
-function normalizeAvailabilityData(data) {
-  const source = data?.dados ?? data?.data ?? data ?? {}
-  const disponiveis = Number(source?.disponiveis ?? source?.disponivel ?? source?.available ?? 0)
-  const total = Number(source?.total ?? source?.total_variacoes ?? source?.variacoes_total ?? 0)
 
-  return {
-    disponiveis: Number.isFinite(disponiveis) ? disponiveis : 0,
-    total: Number.isFinite(total) ? total : 0,
-  }
-}
 
-function normalizeKgData(data) {
-  const source = data?.dados ?? data?.data ?? data ?? {}
-
-  const possibleValues = [
-    source?.kg_disponiveis,
-    source?.kgDisponiveis,
-    source?.total_kg,
-    source?.totalKg,
-    source?.kg_total,
-    source?.disponivel_kg,
-    source?.valor,
-    source?.total,
-  ]
-
-  const raw = possibleValues.find((value) => value !== undefined && value !== null && value !== '')
-  const numeric = Number(String(raw ?? 0).replace(',', '.'))
-
-  return {
-    totalKg: Number.isFinite(numeric) ? numeric : 0,
-  }
-}
 
 function formatKgValue(value) {
   const numeric = Number(value)
@@ -660,127 +622,53 @@ function PageContent({ activeKey, userName }) {
 }
 
 function HomePage() {
-  const [availability, setAvailability] = useState({
-    loading: true,
-    error: '',
-    disponiveis: 0,
-    total: 0,
-  })
-  const [kgAvailable, setKgAvailable] = useState({
-    loading: true,
-    error: '',
-    totalKg: 0,
-  })
+  const [metrics, setMetrics] = useState({ loading: true, error: '', totalKg: 0, disponiveis: 0, total: 0 })
 
   useEffect(() => {
     let ignore = false
 
-    async function loadAvailability() {
+    async function loadMetrics() {
       try {
-        const res = await api.get('/api/menu/produtos-disponiveis')
-        const parsed = normalizeAvailabilityData(res?.data)
-
+        const res = await api.get('/api/menu/metrics')
         if (ignore) return
-        setAvailability({
-          loading: false,
-          error: '',
-          ...parsed,
+        const data        = res?.data ?? {}
+        const quantidade  = data?.quantidade ?? {}
+        setMetrics({
+          loading:     false,
+          error:       '',
+          totalKg:     Number(data?.kg_disponiveis ?? 0),
+          disponiveis: Number(quantidade?.disponiveis ?? 0),
+          total:       Number(quantidade?.total ?? 0),
         })
       } catch (err) {
         if (ignore) return
-
-        setAvailability({
+        setMetrics({
           loading: false,
-          error: extractApiMessage(err?.response?.data) || 'Não foi possível carregar as variações disponíveis.',
-          disponiveis: 0,
-          total: 0,
+          error: extractApiMessage(err?.response?.data) || 'Não foi possível carregar os indicadores.',
+          totalKg: 0, disponiveis: 0, total: 0,
         })
       }
     }
 
-    async function loadKgAvailable() {
-      try {
-        const res = await api.get('/api/menu/kg-disponiveis')
-        const parsed = normalizeKgData(res?.data)
-
-        if (ignore) return
-        setKgAvailable({
-          loading: false,
-          error: '',
-          ...parsed,
-        })
-      } catch (err) {
-        if (ignore) return
-
-        setKgAvailable({
-          loading: false,
-          error: extractApiMessage(err?.response?.data) || 'Não foi possível carregar o total disponível em Kg.',
-          totalKg: 0,
-        })
-      }
-    }
-
-    loadAvailability()
-    loadKgAvailable()
-
-    return () => {
-      ignore = true
-    }
+    loadMetrics()
+    return () => { ignore = true }
   }, [])
 
   const homeMetrics = useMemo(() => {
     return HOME_METRICS.map((item) => {
       if (item.key === 'totalKg') {
-        if (kgAvailable.loading) {
-          return {
-            ...item,
-            value: 'Carregando...',
-            hint: 'Consultando a API /api/menu/kg-disponiveis.',
-          }
-        }
-
-        if (kgAvailable.error) {
-          return {
-            ...item,
-            value: '--',
-            hint: kgAvailable.error,
-          }
-        }
-
-        return {
-          ...item,
-          value: formatKgValue(kgAvailable.totalKg),
-          hint: 'Total consolidado de produtos disponível retornado pela API.',
-        }
+        if (metrics.loading) return { ...item, value: 'Carregando...', hint: 'Consultando /api/menu/metrics.' }
+        if (metrics.error)   return { ...item, value: '--', hint: metrics.error }
+        return { ...item, value: formatKgValue(metrics.totalKg), hint: 'Total de Kg disponível retornado pela API.' }
       }
-
       if (item.key === 'availability') {
-        if (availability.loading) {
-          return {
-            ...item,
-            value: 'Carregando...',
-            hint: 'Consultando a API /api/menu/produtos-disponiveis.',
-          }
-        }
-
-        if (availability.error) {
-          return {
-            ...item,
-            value: '--',
-            hint: availability.error,
-          }
-        }
-
-        return {
-          ...item,
-          value: `${availability.disponiveis}/${availability.total}`,
-          hint: 'Variações com estoque disponível em relação ao total cadastrado na API.',
-        }
+        if (metrics.loading) return { ...item, value: 'Carregando...', hint: 'Consultando /api/menu/metrics.' }
+        if (metrics.error)   return { ...item, value: '--', hint: metrics.error }
+        return { ...item, value: `${metrics.disponiveis}/${metrics.total}`, hint: 'Variações disponíveis em relação ao total cadastrado.' }
       }
-
       return item
     })
-  }, [availability, kgAvailable])
+  }, [metrics])
 
   return (
     <>
@@ -811,8 +699,8 @@ function HomePage() {
         title="Integração sugerida para o menu principal"
         items={API_BLUEPRINTS.home}
         notes={[
-          'O card Total de Produtos em Kg já consome o endpoint autenticado /api/menu/kg-disponiveis.',
-          'O card de variações disponíveis já consome o endpoint autenticado /api/menu/produtos-disponiveis.',
+          'Os cards de Kg e variações disponíveis consomem o endpoint unificado /api/menu/metrics.',
+          'A resposta traz: kg_disponiveis, quantidade.disponiveis, quantidade.total e quantidade.porcentagem.',
           'Popular a tabela de atividade com paginação ou limite de registros.',
         ]}
       />
@@ -1253,32 +1141,136 @@ function EmployeesPage() {
   )
 }
 
-function RecentActivityTable() {
+function detectLogType(acao) {
+  if (!acao) return 'neutral'
+  const s = acao.toLowerCase()
+  if (
+    s.includes('delet') || s.includes('remov') || s.includes('exclu') ||
+    s.includes('cancel') || s.includes('inativ')
+  ) return 'delete'
+  if (
+    s.includes('adicion') || s.includes('cadastr') || s.includes('cri') ||
+    s.includes('insert') || s.includes('novo') || s.includes('nova') ||
+    s.includes('entrada')
+  ) return 'add'
+  if (
+    s.includes('atualiz') || s.includes('edit') || s.includes('alter') ||
+    s.includes('modif') || s.includes('ajust') || s.includes('atuali')
+  ) return 'edit'
+  return 'neutral'
+}
+
+const LOG_BADGE = {
+  add:     { label: 'Adicionado', bg: '#d1fae5', color: '#065f46', dot: '#10b981' },
+  delete:  { label: 'Deletado',   bg: '#fee2e2', color: '#991b1b', dot: '#ef4444' },
+  edit:    { label: 'Editado',    bg: '#fef3c7', color: '#92400e', dot: '#f59e0b' },
+  neutral: { label: 'Ação',       bg: '#f1f5f9', color: '#475569', dot: '#94a3b8' },
+}
+
+function LogBadge({ acao }) {
+  const type = detectLogType(acao)
+  const { label, bg, color, dot } = LOG_BADGE[type]
   return (
-    <SectionCard title="Atividade recente" subtitle="Tabela mantida conforme solicitado, pronta para leitura do backend.">
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 5,
+      padding: '3px 10px',
+      borderRadius: 999,
+      background: bg,
+      color,
+      fontSize: 11.5,
+      fontWeight: 700,
+      letterSpacing: '0.02em',
+      whiteSpace: 'nowrap',
+    }}>
+      <span style={{
+        width: 7,
+        height: 7,
+        borderRadius: '50%',
+        background: dot,
+        flexShrink: 0,
+      }} />
+      {label}
+    </span>
+  )
+}
+
+function RecentActivityTable() {
+  const [logs, setLogs] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    setLoading(true)
+    setError(null)
+    api
+      .get('/api/logs')
+      .then((res) => {
+        const dados = res.data?.dados
+        setLogs(Array.isArray(dados) ? dados : [])
+      })
+      .catch(() => {
+        setError('Não foi possível carregar os logs.')
+        setLogs([])
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  function formatTimestamp(ts) {
+    if (!ts) return '—'
+    const d = new Date(ts)
+    if (isNaN(d)) return ts
+    return d.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
+  return (
+    <SectionCard title="Atividade recente" subtitle="Logs de ações dos usuários carregados da API.">
       <div className="table modernTable activityTable">
         <div className="row head rowActivity">
           <span>Data</span>
+          <span>Usuário</span>
           <span>Ação</span>
-          <span>Status</span>
         </div>
 
-        {RECENT_ACTIVITY.map((item) => (
-          <div className="row rowActivity" key={`${item.date}-${item.action}`}>
-            <span>{item.date}</span>
-            <span>{item.action}</span>
-            <span>
-              <span
-                className={cx(
-                  'pill',
-                  item.status === 'Concluído' ? 'ok' : item.status === 'Em andamento' ? 'mid' : 'bad',
-                )}
-              >
-                {item.status}
-              </span>
-            </span>
+        {loading && (
+          <div className="row rowActivity">
+            <span style={{ gridColumn: '1 / -1', opacity: 0.5, padding: '4px 0' }}>Carregando...</span>
           </div>
-        ))}
+        )}
+
+        {!loading && error && (
+          <div className="row rowActivity">
+            <span style={{ gridColumn: '1 / -1', color: 'var(--red, #e55)' }}>{error}</span>
+          </div>
+        )}
+
+        {!loading && !error && logs.length === 0 && (
+          <div className="row rowActivity">
+            <span style={{ gridColumn: '1 / -1', opacity: 0.5, padding: '4px 0' }}>Nenhum dado disponível.</span>
+          </div>
+        )}
+
+        {!loading &&
+          !error &&
+          logs.map((item, idx) => (
+            <div className="row rowActivity" key={idx}>
+              <span>{formatTimestamp(item.timestamp)}</span>
+              <span>{item.nome_usuario ?? '—'}</span>
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {item.acao ?? '—'}
+                </span>
+                <LogBadge acao={item.acao} />
+              </span>
+            </div>
+          ))}
       </div>
     </SectionCard>
   )
