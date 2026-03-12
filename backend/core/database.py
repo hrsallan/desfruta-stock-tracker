@@ -178,8 +178,24 @@ def deletar_produto(sabor):
     with sqlite3.connect(db_path) as conn: 
         conn.execute('DELETE FROM produtos_padrao WHERE sabor = ?', (sabor,))
         if conn.total_changes == 0:
-            raise ValueError("Produto não encontrado para exclusão.") 
-    
+            raise ValueError("Produto não encontrado para exclusão.")
+        
+#Função para criar a tabela de movimentações(histórico)
+def criar_tabela_movimentacoes():
+    with sqlite3.connect(db_path) as conn:
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS movimentacoes (
+                       id INTEGER PRIMARY KEY AUTOINCREMENT,
+                       sabor TEXT,
+                       quantidade_kg REAL,
+                       validade TEXT,
+                       acao TEXT,
+                       data TEXT
+        )
+        """)
+
 # Função para registrar uma ação no log
 def registrar_log(nome_usuario, user_id, acao):
     try:

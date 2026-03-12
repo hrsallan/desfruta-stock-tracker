@@ -7,7 +7,7 @@ from datetime import timedelta
 from core.database import (
 registrar_usuario, login_usuario, obter_logs, obter_info_usuario_por_username, verificar_produtos_menu, obter_metricas_funcionarios,
 tabela_produtos, cadastrar_produto, deletar_produto, registrar_log, deletar_logs_totais, atualizar_ultimo_acesso, tabela_funcionarios,
-cadastro_funcionario, deletar_funcionario
+cadastro_funcionario, deletar_funcionario, criar_tabela_movimentacoes
 )
 
 # -------------------------
@@ -19,6 +19,7 @@ load_dotenv()
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=8)
 jwt = JWTManager(app)
+criar_tabela_movimentacoes()
 
 # -------------------------
 # Ping-Pong para teste de API
