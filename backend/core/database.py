@@ -196,6 +196,11 @@ def criar_tabela_movimentacoes():
         )
         """)
 
+#Função para registrar as movimentações
+def registrar_movimentacao(sabor, quantidade_kg, validade, acao):
+    with sqlite3.connect(db_path) as conn:
+        cursor = conn.cursor()
+
 # Função para registrar uma ação no log
 def registrar_log(nome_usuario, user_id, acao):
     try:
