@@ -318,18 +318,82 @@ def registrar_movimentacao(sabor, quantidade_kg, validade, acao, tipo):
     except Exception as e:
         print(f"Erro ao registrar movimentação: {e}")
 
-# Função para atualizar a quantidade de um produto no estoque
-def atualizar_quantidade_produto(sabor, nova_quantidade):
+# Função para atualizar a quantidade de um produto no estoque, considerando o lote específico (sabor + validade)
+def atualizar_quantidade_produto(sabor, validade, nova_quantidade):
     try:
         with sqlite3.connect(db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute('UPDATE produtos_padrao SET quantidade_kg = ? WHERE sabor = ?', (nova_quantidade, sabor))
+            # 1. Atualiza a tabela GERAL (produtos_padrao)
+            # Usamos UPDATE com soma direta para evitar problemas de concorrência
+            cursor.execute('UPDATE produtos_padrao SET quantidade_kg = quantidade_kg + ? WHERE sabor = ?', (nova_quantidade, sabor))
             if cursor.rowcount == 0:
-                raise ValueError("Produto não encontrado para atualização.")
+                raise ValueError(f"Sabor '{sabor}' não cadastrado na tabela padrão.")
+            # 2. Atualiza ou Insere na tabela de LOTES (produtos)
+            # Verifica se já existe esse sabor com essa validade
+            lote_existente = cursor.execute('SELECT quantidade_kg FROM produtos WHERE sabor = ? AND validade = ?', (sabor, validade)).fetchone()
+            if lote_existente:
+                # Se o lote já existe, soma à quantidade atual
+                cursor.execute('UPDATE produtos SET quantidade_kg = quantidade_kg + ? WHERE sabor = ? AND validade = ?', (nova_quantidade, sabor, validade))
+            else:
+                # Se é um lote novo, cria a linha
+                cursor.execute('INSERT INTO produtos (sabor, validade, quantidade_kg) VALUES (?, ?, ?)', (sabor, validade, nova_quantidade))
+            conn.commit()
+            print(f"Estoque de '{sabor}' (Validade: {validade}) atualizado com sucesso!")
     except ValueError as e:
-        print(f"Erro ao atualizar quantidade: {e}")
+        print(f"Erro de validação: {e}")
+    except sqlite3.Error as e:
+        print(f"Erro no Banco de Dados: {e}")
     except Exception as e:
-        print(f"Erro inesperado ao atualizar quantidade: {e}")
+        print(f"Erro inesperado: {e}")
+
+# Função para subtrair a quantidade de um produto no estoque, considerando o lote específico (sabor + validade)
+def subtrair_quantidade_produto(sabor, validade, quantidade_subtrair):    
+    try:
+        with sqlite3.connect(db_path) as conn:
+            cursor = conn.cursor()
+            # 1. Busca a quantidade do lote específico
+            res = cursor.execute('SELECT quantidade_kg FROM produtos WHERE sabor = ? AND validade = ?', (sabor, validade)).fetchone()
+            if res is None:
+                raise ValueError(f"Lote '{sabor}' com validade '{validade}' não encontrado.")
+            qtd_lote_atual = res[0]
+            if qtd_lote_atual < quantidade_subtrair:
+                raise ValueError(f"Estoque insuficiente no lote (Disponível: {qtd_lote_atual}kg).")
+            # 2. Calcula a nova quantidade do lote
+            nova_qtd_lote = qtd_lote_atual - quantidade_subtrair
+            # 3. Atualiza ou Deleta o lote na tabela 'produtos'
+            if nova_qtd_lote > 0:
+                cursor.execute('UPDATE produtos SET quantidade_kg = ? WHERE sabor = ? AND validade = ?', (nova_qtd_lote, sabor, validade))
+            else:
+                cursor.execute('DELETE FROM produtos WHERE sabor = ? AND validade = ?', (sabor, validade))
+            # 4. Atualiza a tabela geral 'produtos_padrao' (mantém a linha mesmo que zerada)
+            cursor.execute('UPDATE produtos_padrao SET quantidade_kg = quantidade_kg - ? WHERE sabor = ?', (quantidade_subtrair, sabor))
+            conn.commit()
+            print(f"Sucesso! Estoque de '{sabor}' atualizado.")
+    except ValueError as e:
+        print(f"Erro: {e}")
+    except sqlite3.Error as e:
+        print(f"Erro no Banco de Dados: {e}")
+
+# Função que deleta um lote específico (sabor + validade) do estoque, por conta do vencimento
+def vencimento_produto(sabor, validade):
+    try:
+        with sqlite3.connect(db_path) as conn:
+            cursor = conn.cursor()
+            # Busca a quantidade do lote específico
+            res = cursor.execute('SELECT quantidade_kg FROM produtos WHERE sabor = ? AND validade = ?', (sabor, validade)).fetchone()
+            if res is None:
+                raise ValueError(f"Lote '{sabor}' com validade '{validade}' não encontrado.")
+            qtd_lote_atual = res[0]
+            # Deleta o lote da tabela 'produtos'
+            cursor.execute('DELETE FROM produtos WHERE sabor = ? AND validade = ?', (sabor, validade))
+            # Atualiza a tabela geral 'produtos_padrao' subtraindo a quantidade do lote vencido
+            cursor.execute('UPDATE produtos_padrao SET quantidade_kg = quantidade_kg - ? WHERE sabor = ?', (qtd_lote_atual, sabor))
+            conn.commit()
+            print(f"Lote '{sabor}' com validade '{validade}' removido por vencimento.")
+    except ValueError as e:
+        print(f"Erro: {e}")
+    except sqlite3.Error as e:
+        print(f"Erro no Banco de Dados: {e}")
 
 # Função para atualizar a disponibilidade de um produto
 def atualizar_disponibilidade_produto(sabor):
