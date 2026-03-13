@@ -227,6 +227,34 @@ def verificar_produto_existe(sabor):
         cursor.execute('SELECT COUNT(*) FROM produtos_padrao WHERE sabor = ?', (sabor,))
         return cursor.fetchone()[0] > 0
 
+#Função registrar movimentações
+def registrar_movimentacoes(sabor, quantidade_kg, validade, acao):
+        try:
+            br_time = datetime.now(timezone(timedelta(hours=-3))).strftime('%Y-%m-%d %H:%M:%S')
+            with sqlite3.connect(db_path) as conn:
+                conn.execute("INSERT INTO movimentacoes (sabor, quantidade_kg, validade, acao, data) VALUES (?, ?, ?, ?, ?)", (sabor, quantidade_kg, validade, acao, br_time))
+        except Exception as e:
+            print(f"erro ao registrar log: {e}")
+
+def obter_metricas_estoque():
+    with sqlite3.connect(db_path) as conn:
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT SUM(quantidade_kg) FROM produtos_padrao")
+        saldo_total = cursor.fetchone()[0] or 0
+
+        cursor.execute("SELECT SUM(quantidade_kg) FROM movimentacoes WHERE acao = 'Adicionar' AND date(data) = date('now', '-3 hours')")
+        entradas_hoje = cursor.fetchone()[0] or 0
+
+        cursor.execute("SELECT SUM(quantidade_kg) FROM movimentacoes WHERE acao IN ('Venda', 'Vencido', 'Retirar') AND date(data) = date('now', '-3 hours')")
+        saidas_hoje = cursor.fetchone()[0] or 0
+
+        return {
+            'saldo_total': saldo_total,
+            'entradas_hoje': entradas_hoje,
+            'saidas_hoje': saidas_hoje
+        }
+
 # Função para registrar uma ação no log
 def registrar_log(nome_usuario, user_id, acao):
     try:
@@ -308,15 +336,6 @@ def deletar_funcionario(username, password):
         print(f"Erro ao deletar funcionário: {e}")
     except Exception as e:
         print(f"Erro inesperado ao deletar funcionário: {e}")
-    
-# Função para registrar movimentação de estoque
-def registrar_movimentacao(sabor, quantidade_kg, validade, acao, tipo):
-    try:
-        with sqlite3.connect(db_path) as conn:
-            conn.execute('INSERT INTO movimentacoes (sabor, quantidade_kg, validade, acao, tipo) VALUES (?, ?, ?, ?)', 
-                        (sabor, quantidade_kg, validade, acao, tipo))
-    except Exception as e:
-        print(f"Erro ao registrar movimentação: {e}")
 
 # Função para atualizar a quantidade de um produto no estoque, considerando o lote específico (sabor + validade)
 def atualizar_quantidade_produto(sabor, validade, nova_quantidade):
