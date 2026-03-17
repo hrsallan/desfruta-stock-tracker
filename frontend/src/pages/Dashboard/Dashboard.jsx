@@ -1,14 +1,44 @@
+import api from '../../api/axiosInstance'
+import { useEffect, useState } from 'react'
 import { MiniMetric, SectionCard } from '../../components/Cards'
 import { DASHBOARD_SUMMARY } from '../../constants/nav'
 import './Dashboard.css'
 
 export function DashboardPage() {
+  const [volumeLoading, setVolumeLoading] = useState(true)
+  const [volumeKg, setVolumeKg] = useState(null)
+
+  async function loadVolume(ignore) {
+    setVolumeLoading(true)
+    try {
+      const res = await api.get('/api/dashboard/volume-vendido')
+      if (ignore?.current) return
+      const data = res?.data ?? {}
+      setVolumeKg(data.dados ?? 0)
+    } catch {
+      if (ignore?.current) return
+      setVolumeKg(null)
+    } finally {
+      if (!ignore?.current) setVolumeLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    const ignore = { current: false }
+    loadVolume(ignore)
+    return () => { ignore.current = true }
+  }, [])
+
   return (
     <div className="pageStack">
       <div className="metricGrid compactMetrics">
-        {DASHBOARD_SUMMARY.map((item) => (
-          <MiniMetric key={item.label} title={item.label} value={item.value} detail={item.note} />
-        ))}
+        <MiniMetric
+          title="Volume vendido"
+          value={volumeLoading ? 'Carregando...' : volumeKg != null ? `${Number(volumeKg).toLocaleString('pt-BR')} Kg` : '--'}
+          detail="Total vendo no mês atual"
+          />
+        <MiniMetric title="Ticket médio" value="R$ 418" detail="+4,1% no período" />
+        <MiniMetric title="Margem estimada" value="26%" detail="Baseada em mix e custo médio" />
       </div>
 
       <div className="splitGrid twoColsTop">

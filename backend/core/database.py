@@ -449,7 +449,14 @@ def obter_nome_produtos():
     
 #Função para obter o volume vendido no mês (Kg)
 def obter_volume_vendido_mes():
-    ...
+    try:
+        with sqlite3.connect(db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT SUM(quantidade_kg) FROM movimentacoes WHERE acao = 'Venda' AND strftime('%Y-%m', data) = strftime('%Y-%m', 'now', '-3 hours')")
+            kg_mes = cursor.fetchone() [0] or 0
+            return kg_mes
+    except Exception as e:
+        print(f"erro ao obter o volume vendido do mês: {e}")
 
 
 # --- Execução ---
