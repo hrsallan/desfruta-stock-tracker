@@ -420,17 +420,18 @@ def vencimento_produto(sabor, validade):
 
 # Função para atualizar a disponibilidade de um produto
 def atualizar_disponibilidade_produto(sabor):
-    with sqlite3.connect(db_path) as conn:
         try:
-            cursor = conn.cursor()
-            cursor.execute('SELECT quantidade_kg FROM produtos_padrao WHERE sabor = ?', (sabor,))
-            quantidade = cursor.fetchone()
-            if quantidade and quantidade[0] > 0:
-                cursor.execute('UPDATE produtos_padrao SET disponivel = 1 WHERE sabor = ?', (sabor,))
-                print(f"Produto '{sabor}' agora está disponível.")
-            elif quantidade:
-                cursor.execute('UPDATE produtos_padrao SET disponivel = 0 WHERE sabor = ?', (sabor,))
-                print(f"Produto '{sabor}' agora está indisponível.")
+            with sqlite3.connect(db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute('SELECT quantidade_kg FROM produtos_padrao WHERE sabor = ?', (sabor,))
+                quantidade = cursor.fetchone()
+                if quantidade and quantidade[0] > 0:
+                    cursor.execute('UPDATE produtos_padrao SET disponivel = 1 WHERE sabor = ?', (sabor,))
+                    print(f"Produto '{sabor}' agora está disponível.")
+                elif quantidade:
+                    cursor.execute('UPDATE produtos_padrao SET disponivel = 0 WHERE sabor = ?', (sabor,))
+                    print(f"Produto '{sabor}' agora está indisponível.")
+                conn.commit()
         except Exception as e:
             print(f"Erro ao verificar disponibilidade: {e}")
 
@@ -445,6 +446,11 @@ def obter_nome_produtos():
     except Exception as e:
         print(f"Erro ao obter nomes dos produtos: {e}")
         return []
+    
+#Função para obter o volume vendido no mês (Kg)
+def obter_volume_vendido_mes():
+    ...
+
 
 # --- Execução ---
 if __name__ == "__main__":
