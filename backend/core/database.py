@@ -230,15 +230,24 @@ def verificar_produto_existe(sabor):
 #Função registrar movimentações
 def registrar_movimentacoes(sabor, quantidade_kg, validade, acao):
         try:
+            quantidade_kg = float(str(quantidade_kg).replace(',', '.'))
             br_time = datetime.now(timezone(timedelta(hours=-3))).strftime('%Y-%m-%d %H:%M:%S')
             with sqlite3.connect(db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute('SELECT quantidade_kg FROM produtos_padrao WHERE sabor = ?', (sabor,))
+                saldo_total = cursor.fetchone()[0] or 0
+
+                if acao != 'Adicionar' and quantidade_kg > saldo_total:
+                    raise ValueError(f'Saldo insuficiente. Saldo atual: {saldo_total} Kg')
                 conn.execute("INSERT INTO movimentacoes (sabor, quantidade_kg, validade, acao, data) VALUES (?, ?, ?, ?, ?)", (sabor, quantidade_kg, validade, acao, br_time))
                 if acao == 'Adicionar':
                     conn.execute("UPDATE produtos_padrao SET quantidade_kg = quantidade_kg + ? WHERE sabor = ?", (quantidade_kg, sabor))
                 else:
                     conn.execute("UPDATE produtos_padrao SET quantidade_kg = quantidade_kg - ? WHERE sabor = ?", (quantidade_kg, sabor))
+
         except Exception as e:
             print(f"erro ao registrar log: {e}")
+            raise
 
 def obter_metricas_estoque():
     with sqlite3.connect(db_path) as conn:

@@ -375,7 +375,9 @@ def movimentacoes_estoque():
         
         registrar_movimentacoes(sabor, quantidade_kg, validade, acao)
         return jsonify({'status': 'sucesso', 'mensagem': 'Movimentação registrada com sucesso!'}), 201
-        
+    
+    except ValueError as ve:
+        return jsonify({'status': 'erro', 'mensagem': str(ve)}), 400
     except Exception as e:
         return jsonify({'status': 'erro', 'mensagem': str(e)}), 500
     
