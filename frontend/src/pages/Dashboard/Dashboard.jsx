@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { MiniMetric, SectionCard } from '../../components/Cards'
 import { DASHBOARD_SUMMARY } from '../../constants/nav'
 import './Dashboard.css'
-import { PieChart, Pie, Cell, Tooltip, Legend } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 export function DashboardPage() {
   const [volumeLoading, setVolumeLoading] = useState(true)
@@ -189,24 +189,27 @@ export function DashboardPage() {
             {faturamentoPorTipoLoading ? (
               <p>Carregando...</p>
             ) : (
-              <PieChart width={700} height={400}>
-                <Pie
-                  data={[
-                    { name: 'Pessoa Física', value : faturamentoPorTipo?.[0] ?? 0 },
-                    { name: 'CNPJ', value : faturamentoPorTipo?.[1] ?? 0},
-                  ]}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  dataKey="value"
-                  label={({ name, value }) => `${name}: R$${Number(value).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`}
-                >
-                  <Cell fill="#22c55e"/>
-                  <Cell fill="#f97316"/>
-                </Pie>
-                <Tooltip formatter={(v) => `R$${Number(v).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`} />
-                <Legend />
-              </PieChart>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={[
+                      { name: 'Pessoa Física', value : faturamentoPorTipo?.[0] ?? 0 },
+                      { name: 'CNPJ', value : faturamentoPorTipo?.[1] ?? 0},
+                    ]}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    dataKey="value"
+                    labelLine={false}
+                    label={false}
+                  >
+                    <Cell fill="#22c55e"/>
+                    <Cell fill="#f97316"/>
+                  </Pie>
+                  <Tooltip formatter={(v) => `R$${Number(v).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
             )}
           </div>
         </SectionCard>
