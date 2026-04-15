@@ -1,0 +1,7 @@
+.splitGrid.twoColsTop {
+  align-items: stretch;
+}
+
+.splitGrid.twoColsTop .panel:last-child {
+  margin-top: 0;
+}
