@@ -42,7 +42,7 @@ O **Desfruta Stock** é uma base de sistema de gestão com foco em operação co
 - **Flask** como framework principal da API
 - **Flask-CORS** para permitir integração com frontend
 - **Flask-JWT-Extended** para autenticação via token
-- **SQLite** como banco local
+- **PostgreSQL** como banco de dados
 - **python-dotenv** para variáveis de ambiente
 
 ## Estrutura do projeto
